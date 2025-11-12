@@ -17,17 +17,25 @@ class ControlState:
     """Mutable simulation controls shared across subsystems."""
 
     traffic_inflow: float = 1.0
+    traffic_signal_bias: float = 1.0
     energy_base_load: float = 1.0
+    renewable_boost: float = 0.0
     waste_request_rate: float = 1.0
+    waste_fleet_size: int = 6
     emergency_override: bool = False
+    emergency_staff: int = 8
     paused: bool = False
 
     def to_dict(self) -> dict[str, Any]:
         return {
             "traffic_inflow": self.traffic_inflow,
+            "traffic_signal_bias": self.traffic_signal_bias,
             "energy_base_load": self.energy_base_load,
+            "renewable_boost": self.renewable_boost,
             "waste_request_rate": self.waste_request_rate,
+            "waste_fleet_size": self.waste_fleet_size,
             "emergency_override": self.emergency_override,
+            "emergency_staff": self.emergency_staff,
             "paused": self.paused,
         }
 
@@ -97,8 +105,10 @@ class SimulationController:
             self.kernel.shutdown()
             if self._thread and self._thread.is_alive():
                 self._thread.join(timeout=3)
+            self._thread = None
             if self._metrics_thread and self._metrics_thread.is_alive():
                 self._metrics_thread.join(timeout=3)
+            self._metrics_thread = None
             self.controls = ControlState()
             self.kernel.reset()
             with self._history_lock:

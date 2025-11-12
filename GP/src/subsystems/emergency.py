@@ -46,6 +46,9 @@ class EmergencyUnit(SubsystemThread):
             self._open_incidents += new_incidents
             logger.debug("Emergency tick: registered %d new incidents", new_incidents)
 
+        self._units_available = int(self.get_control("emergency_staff", self._units_available))
+        self._units_available = max(2, self._units_available)
+
         if self._open_incidents:
             congestion_penalty = 1.0 + max(congestion - 0.8, 0) * 0.8
             speed_factor = max(avg_speed / 45.0, 0.4)

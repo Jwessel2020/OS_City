@@ -33,6 +33,9 @@ class WasteOps(SubsystemThread):
         request_scalar = float(self.get_control("waste_request_rate", 1.0))
         request_scalar = max(0.0, min(request_scalar, 3.0))
 
+        fleet_override = int(self.get_control("waste_fleet_size", self._fleet_size))
+        self._fleet_size = max(1, fleet_override)
+
         congestion = float(self.get_metric("traffic", "congestion_index", 0.5))
         avg_speed = float(self.get_metric("traffic", "avg_speed_kmh", 35.0))
         energy_price = float(self.get_metric("energy", "price_index", 1.0))

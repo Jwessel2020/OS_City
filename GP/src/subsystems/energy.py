@@ -44,6 +44,8 @@ class EnergyGrid(SubsystemThread):
         traffic_ev = float(self.get_metric("traffic", "ev_charging_demand_mwh", 0.0))
         waste_energy = float(self.get_metric("waste", "fleet_energy_mwh", 0.0))
         emergency_energy = float(self.get_metric("emergency", "grid_demand_mwh", 0.0))
+        renewable_boost = float(self.get_control("renewable_boost", 0.0))
+        renewable_boost = max(0.0, min(renewable_boost, 1.0))
 
         distributed_additional = traffic_ev + waste_energy + emergency_energy
         per_zone_extra = distributed_additional / max(self._zones, 1)
@@ -58,9 +60,15 @@ class EnergyGrid(SubsystemThread):
 
         total_consumption += traffic_ev + waste_energy + emergency_energy
         weather_factor = 0.8 + self._rng.uniform(-0.18, 0.22)
-        self._renewables = max(0.0, self._base_load * base_load_scalar * weather_factor * 0.4)
+        renewable_share = 0.35 + renewable_boost * 0.45
+        thermal_share = max(0.15, 1.0 - renewable_share)
+
+        self._renewables = max(
+            0.0,
+            self._base_load * base_load_scalar * weather_factor * renewable_share,
+        )
         thermal_generation = max(
-            self._base_load * base_load_scalar * 0.6 + self._rng.uniform(-8.0, 12.0),
+            self._base_load * base_load_scalar * thermal_share + self._rng.uniform(-8.0, 12.0),
             20.0,
         )
         self._generation = self._renewables + thermal_generation

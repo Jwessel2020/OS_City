@@ -163,7 +163,7 @@ def _run_with_dash(kernel: CityKernel, logger: logging.Logger, args: argparse.Na
 
     try:
         logger.info("Starting Dash control center on http://127.0.0.1:8050")
-        app.run_server(debug=False, use_reloader=False)
+        app.run(debug=False, use_reloader=False)
     except KeyboardInterrupt:
         logger.warning("Dash server interrupted by user")
     finally:

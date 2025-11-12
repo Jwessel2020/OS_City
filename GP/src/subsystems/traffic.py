@@ -50,8 +50,13 @@ class TrafficManager(SubsystemThread):
         vehicles = max(int(base_flow + variability), 0)
 
         # Energy shortages reduce signal efficiency, emergency roadblocks reduce capacity
+        signal_bias = float(self.get_control("traffic_signal_bias", 1.0))
+        signal_bias = max(0.5, min(signal_bias, 1.8))
+
         self._signal_efficiency = max(0.6, 1.0 + min(energy_surplus, 0) / 150.0)
+        self._signal_efficiency *= signal_bias
         self._signal_efficiency -= min(emergency_units * 0.03, 0.2)
+        self._signal_efficiency = max(0.45, min(self._signal_efficiency, 1.5))
 
         base_capacity = self._junctions * 12
         effective_capacity = max(base_capacity * self._signal_efficiency, 1)

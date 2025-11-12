@@ -131,6 +131,8 @@ class CityKernel:
             subsystem.shutdown()
 
         for subsystem in self._subsystems:
+            if subsystem.ident is None:
+                continue
             subsystem.join(timeout=2)
             if subsystem.is_alive():
                 logger.warning("Subsystem %s did not terminate cleanly", subsystem.name)
