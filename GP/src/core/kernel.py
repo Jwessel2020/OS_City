@@ -6,8 +6,10 @@ import logging
 import threading
 import time
 from collections.abc import Iterable
-from typing import Any
+from queue import Empty, Queue
+from typing import Any, Optional
 
+from src.core.context import CityContext
 from src.subsystems.base import SubsystemThread
 from src.subsystems.factory import build_subsystems_from_config
 
@@ -33,6 +35,10 @@ class CityKernel:
         self._tick_barrier: threading.Barrier | None = None
         self._tick_index = 0
         self._lock = threading.Lock()
+        self.context = CityContext()
+        buffer_size = int(self.config.get("metrics_buffer", 256))
+        self._metrics_queue: Queue[dict[str, Any]] = Queue(maxsize=buffer_size)
+        self._latest_metrics: dict[str, dict[str, Any]] = {}
 
     # ------------------------------------------------------------------
     # Lifecycle management
@@ -121,6 +127,12 @@ class CityKernel:
             if subsystem.is_alive():
                 logger.warning("Subsystem %s did not terminate cleanly", subsystem.name)
 
+        # Notify any listeners that the stream has ended
+        try:
+            self._metrics_queue.put_nowait({"type": "shutdown"})
+        except Exception:  # queue may be full or closed
+            pass
+
     # ------------------------------------------------------------------
     # Synchronization helpers
     # ------------------------------------------------------------------
@@ -146,6 +158,43 @@ class CityKernel:
 
         with self._lock:
             return self._tick_index
+
+    # ------------------------------------------------------------------
+    # Metrics and context
+    # ------------------------------------------------------------------
+    def publish_metrics(self, subsystem: str, metrics: dict[str, Any]) -> None:
+        """Store metrics for a subsystem and push to the queue."""
+
+        tick = self.current_tick()
+        self.context.update(subsystem, tick, metrics)
+        self._latest_metrics[subsystem] = dict(metrics)
+
+        event = {
+            "type": "metrics",
+            "tick": tick,
+            "subsystem": subsystem,
+            "metrics": dict(metrics),
+        }
+        try:
+            self._metrics_queue.put_nowait(event)
+        except Exception:
+            # Drop metrics if queue is saturated; warn once per subsystem
+            logger.debug("Metrics queue is full; dropping event for %s", subsystem)
+
+    def get_latest_metrics(self, subsystem: str | None = None) -> dict[str, Any]:
+        """Return latest metrics for requested subsystem or all subsystems."""
+
+        if subsystem is None:
+            return dict(self._latest_metrics)
+        return dict(self._latest_metrics.get(subsystem, {}))
+
+    def metrics_stream(self, timeout: float | None = None) -> Optional[dict[str, Any]]:
+        """Retrieve the next metrics event from the queue."""
+
+        try:
+            return self._metrics_queue.get(timeout=timeout)
+        except Empty:
+            return None
 
     def _should_continue(self) -> bool:
         if not self._running.is_set():

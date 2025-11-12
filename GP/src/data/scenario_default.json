@@ -5,24 +5,32 @@
       "type": "traffic",
       "thread_name": "TrafficManager",
       "junctions": 12,
-      "vehicles_per_tick": 40
+      "vehicles_per_tick": 46,
+      "seed": 42
     },
     "energy": {
       "type": "energy",
       "thread_name": "EnergyGrid",
       "zones": 4,
-      "base_load_mw": 120
+      "base_load_mw": 140,
+      "renewable_share": 0.42,
+      "storage_capacity_mwh": 320,
+      "initial_storage_pct": 0.55,
+      "seed": 1337
     },
     "waste": {
       "type": "waste",
       "thread_name": "WasteOps",
       "fleet_size": 6,
-      "requests_per_tick": 8
+      "requests_per_tick": 9,
+      "seed": 99
     },
     "emergency": {
       "type": "emergency",
       "thread_name": "EmergencyUnit",
-      "priority_threshold": 0.7
+      "priority_threshold": 0.7,
+      "response_units": 8,
+      "seed": 2025
     }
   }
 }

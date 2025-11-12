@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import logging
+import threading
 from pathlib import Path
 
 from src.core.kernel import CityKernel
@@ -35,6 +36,18 @@ def parse_args() -> argparse.Namespace:
         choices=["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"],
         help="Logging verbosity level",
     )
+    parser.add_argument(
+        "--mode",
+        default="headless",
+        choices=["headless", "visual"],
+        help="Execution mode: headless logging or interactive dashboard",
+    )
+    parser.add_argument(
+        "--history",
+        type=int,
+        default=240,
+        help="Number of ticks retained in visual dashboard plots (visual mode only)",
+    )
     return parser.parse_args()
 
 
@@ -64,6 +77,13 @@ def main() -> None:
 
     kernel.bootstrap()
 
+    if args.mode == "visual":
+        _run_with_dashboard(kernel, args, logger)
+    else:
+        _run_headless(kernel, logger)
+
+
+def _run_headless(kernel: CityKernel, logger: logging.Logger) -> None:
     try:
         kernel.run()
     except KeyboardInterrupt:
@@ -74,6 +94,24 @@ def main() -> None:
     finally:
         logger.info("Shutting down simulation")
         kernel.shutdown()
+
+
+def _run_with_dashboard(kernel: CityKernel, args: argparse.Namespace, logger: logging.Logger) -> None:
+    from src.viz.dashboard import SimulationDashboard
+
+    kernel_thread = threading.Thread(target=kernel.run, name="KernelThread", daemon=True)
+    kernel_thread.start()
+    logger.info("Kernel running in background thread; launching dashboard")
+
+    dashboard = SimulationDashboard(kernel=kernel, history=args.history)
+    try:
+        dashboard.start()
+    except KeyboardInterrupt:
+        logger.warning("Dashboard interrupted by user")
+    finally:
+        logger.info("Stopping simulation and dashboard")
+        kernel.shutdown()
+        kernel_thread.join(timeout=3)
 
 
 if __name__ == "__main__":

@@ -7,6 +7,7 @@ import threading
 from typing import Any, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from src.core.context import CityContext
     from src.core.kernel import CityKernel
 
 logger = logging.getLogger(__name__)
@@ -43,6 +44,9 @@ class SubsystemThread(threading.Thread):
                 self.before_tick()
                 self.execute_tick()
                 self.after_tick()
+                snapshot = self.collect_metrics()
+                if snapshot is not None:
+                    self.publish_metrics(snapshot)
         except Exception:
             logger.exception("Subsystem %s encountered an unexpected error", self.name)
             raise
@@ -69,9 +73,24 @@ class SubsystemThread(threading.Thread):
     def on_stop(self) -> None:
         """Cleanup hook executed when thread exits."""
 
+    def collect_metrics(self) -> dict[str, Any] | None:
+        """Return metrics snapshot for this tick."""
+
+        return None
+
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
+    @property
+    def kernel(self) -> CityKernel:
+        if self._kernel is None:
+            raise RuntimeError("Kernel not attached")
+        return self._kernel
+
+    @property
+    def context(self) -> CityContext:
+        return self.kernel.context
+
     def _wait_for_tick(self) -> bool:
         if self._kernel is None:
             raise RuntimeError("Kernel not attached")
@@ -84,4 +103,18 @@ class SubsystemThread(threading.Thread):
         if self._kernel is None:
             return
         self._kernel.signal_tick_complete()
+
+    def publish_metrics(self, metrics: dict[str, Any]) -> None:
+        if self._kernel is None:
+            return
+        self._kernel.publish_metrics(self.name, metrics)
+
+    def get_metric(self, subsystem: str, key: str, default: Any = 0) -> Any:
+        """Convenience accessor for latest metrics from another subsystem."""
+
+        latest = self.context.get_latest(subsystem)
+        if latest is None:
+            return default
+        _, metrics = latest
+        return metrics.get(key, default)
 
