@@ -30,6 +30,8 @@ def build_subsystems_from_config(_kernel: object, config: dict[str, Any]) -> lis
 
         thread_name = subsystem_params.get("thread_name", subsystem_cls.__name__)
         instance = subsystem_cls(name=thread_name, config=subsystem_params)
+        identifier = subsystem_params.get("identifier", subsystem_type)
+        instance.set_identifier(identifier)
         instances.append(instance)
 
     return instances

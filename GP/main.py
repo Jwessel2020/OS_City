@@ -39,8 +39,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         default="headless",
-        choices=["headless", "visual"],
-        help="Execution mode: headless logging or interactive dashboard",
+        choices=["headless", "visual", "report"],
+        help="Execution mode: headless logging, interactive dashboard, or offline report",
     )
     parser.add_argument(
         "--history",
@@ -57,11 +57,18 @@ def main() -> None:
     configure_logging(args.log_level)
     logger = logging.getLogger(__name__)
 
+    if args.ticks is not None and args.ticks <= 0:
+        args.ticks = None
+
     if not args.config.exists():
         parser_hint = "Try generating a configuration file in src/data/"
         raise FileNotFoundError(f"Configuration file not found: {args.config}. {parser_hint}")
 
     config = load_simulation_config(args.config)
+
+    if args.mode == "report" and args.ticks is None:
+        args.ticks = int(config.get("report_ticks", 180))
+        logger.info("Report mode without tick limit; defaulting to %d ticks.", args.ticks)
 
     kernel = CityKernel(
         config=config,
@@ -79,6 +86,8 @@ def main() -> None:
 
     if args.mode == "visual":
         _run_with_dashboard(kernel, args, logger)
+    elif args.mode == "report":
+        _run_with_report(kernel, args, logger)
     else:
         _run_headless(kernel, logger)
 
@@ -112,6 +121,35 @@ def _run_with_dashboard(kernel: CityKernel, args: argparse.Namespace, logger: lo
         logger.info("Stopping simulation and dashboard")
         kernel.shutdown()
         kernel_thread.join(timeout=3)
+
+
+def _run_with_report(kernel: CityKernel, args: argparse.Namespace, logger: logging.Logger) -> None:
+    from src.viz.report import TelemetryRecorder, render_static_dashboard
+    import matplotlib.pyplot as plt
+
+    if kernel.max_ticks is None:
+        logger.info("No tick limit provided for report; defaulting to 180 ticks.")
+        kernel.max_ticks = 180
+
+    kernel_thread = threading.Thread(target=kernel.run, name="KernelThread", daemon=True)
+    kernel_thread.start()
+    logger.info("Kernel running in background thread; recording metrics")
+
+    recorder = TelemetryRecorder(kernel)
+    records = {}
+    try:
+        records = recorder.record(timeout=0.5)
+    except KeyboardInterrupt:
+        logger.warning("Recording interrupted by user")
+    finally:
+        kernel.shutdown()
+        kernel_thread.join(timeout=3)
+
+    if not kernel.is_running():
+        logger.info("Simulation completed; rendering report")
+        fig = render_static_dashboard(records or recorder.data)
+        fig.canvas.manager.set_window_title("Smart City Simulation Report")
+        plt.show()
 
 
 if __name__ == "__main__":

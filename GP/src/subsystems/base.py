@@ -21,6 +21,7 @@ class SubsystemThread(threading.Thread):
         self._kernel: CityKernel | None = None
         self._config = config or {}
         self._shutdown = threading.Event()
+        self._identifier = self._config.get("identifier", name.lower())
 
     # ------------------------------------------------------------------
     # Lifecycle hooks
@@ -107,7 +108,7 @@ class SubsystemThread(threading.Thread):
     def publish_metrics(self, metrics: dict[str, Any]) -> None:
         if self._kernel is None:
             return
-        self._kernel.publish_metrics(self.name, metrics)
+        self._kernel.publish_metrics(self.identifier, metrics)
 
     def get_metric(self, subsystem: str, key: str, default: Any = 0) -> Any:
         """Convenience accessor for latest metrics from another subsystem."""
@@ -117,4 +118,11 @@ class SubsystemThread(threading.Thread):
             return default
         _, metrics = latest
         return metrics.get(key, default)
+
+    @property
+    def identifier(self) -> str:
+        return self._identifier
+
+    def set_identifier(self, identifier: str) -> None:
+        self._identifier = identifier
 

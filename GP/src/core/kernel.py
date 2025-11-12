@@ -159,6 +159,11 @@ class CityKernel:
         with self._lock:
             return self._tick_index
 
+    def is_running(self) -> bool:
+        """Return True if the kernel main loop is active."""
+
+        return self._running.is_set()
+
     # ------------------------------------------------------------------
     # Metrics and context
     # ------------------------------------------------------------------

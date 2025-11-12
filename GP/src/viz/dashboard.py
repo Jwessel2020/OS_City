@@ -7,11 +7,57 @@ from typing import Any, Deque, Dict, List, Tuple
 
 import matplotlib.pyplot as plt
 from matplotlib.animation import FuncAnimation
+from matplotlib.axes import Axes
 
 from src.core.kernel import CityKernel
 
 
 Number = float
+
+
+def create_plot_config(axes: List[List[Axes]]) -> Dict[str, Dict[str, Any]]:
+    ax00, ax01 = axes[0]
+    ax10, ax11 = axes[1]
+
+    return {
+        "traffic": {
+            "axis": ax00,
+            "metrics": {
+                "congestion_index": {"label": "Congestion", "color": "tab:red"},
+                "avg_speed_kmh": {"label": "Avg speed (km/h)", "color": "tab:blue"},
+            },
+            "title": "Traffic Network",
+            "ylabel": "Value",
+        },
+        "energy": {
+            "axis": ax01,
+            "metrics": {
+                "consumption_mw": {"label": "Consumption (MW)", "color": "tab:orange"},
+                "generation_mw": {"label": "Generation (MW)", "color": "tab:green"},
+                "surplus_mw": {"label": "Surplus (MW)", "color": "tab:cyan"},
+            },
+            "title": "Energy Grid",
+            "ylabel": "Megawatts",
+        },
+        "waste": {
+            "axis": ax10,
+            "metrics": {
+                "pending_requests": {"label": "Pending requests", "color": "tab:purple"},
+                "served_this_tick": {"label": "Served per tick", "color": "tab:brown"},
+            },
+            "title": "Waste Operations",
+            "ylabel": "Requests",
+        },
+        "emergency": {
+            "axis": ax11,
+            "metrics": {
+                "open_incidents": {"label": "Open incidents", "color": "tab:pink"},
+                "severity_index": {"label": "Severity index", "color": "tab:gray"},
+            },
+            "title": "Emergency Response",
+            "ylabel": "Severity / Count",
+        },
+    }
 
 
 class SimulationDashboard:
@@ -28,7 +74,7 @@ class SimulationDashboard:
         self._fig, axes = plt.subplots(2, 2, figsize=(12, 8))
         self._axes = axes
         self._line_map: Dict[Tuple[str, str], Any] = {}
-        self._plot_config = self._build_plot_config()
+        self._plot_config = create_plot_config(self._axes)
 
         self._fig.suptitle("Smart City Simulation Dashboard", fontsize=16)
         self._fig.canvas.mpl_connect("close_event", self._on_close)
@@ -44,6 +90,7 @@ class SimulationDashboard:
             self._update,
             interval=500,
             blit=False,
+            cache_frame_data=False,
         )
         plt.tight_layout()
         plt.show()
@@ -51,50 +98,6 @@ class SimulationDashboard:
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _build_plot_config(self) -> Dict[str, Dict[str, Any]]:
-        ax00, ax01 = self._axes[0]
-        ax10, ax11 = self._axes[1]
-
-        return {
-            "traffic": {
-                "axis": ax00,
-                "metrics": {
-                    "congestion_index": {"label": "Congestion", "color": "tab:red"},
-                    "avg_speed_kmh": {"label": "Avg speed (km/h)", "color": "tab:blue"},
-                },
-                "title": "Traffic Network",
-                "ylabel": "Value",
-            },
-            "energy": {
-                "axis": ax01,
-                "metrics": {
-                    "consumption_mw": {"label": "Consumption (MW)", "color": "tab:orange"},
-                    "generation_mw": {"label": "Generation (MW)", "color": "tab:green"},
-                    "surplus_mw": {"label": "Surplus (MW)", "color": "tab:cyan"},
-                },
-                "title": "Energy Grid",
-                "ylabel": "Megawatts",
-            },
-            "waste": {
-                "axis": ax10,
-                "metrics": {
-                    "pending_requests": {"label": "Pending requests", "color": "tab:purple"},
-                    "served_this_tick": {"label": "Served per tick", "color": "tab:brown"},
-                },
-                "title": "Waste Operations",
-                "ylabel": "Requests",
-            },
-            "emergency": {
-                "axis": ax11,
-                "metrics": {
-                    "open_incidents": {"label": "Open incidents", "color": "tab:pink"},
-                    "severity_index": {"label": "Severity index", "color": "tab:gray"},
-                },
-                "title": "Emergency Response",
-                "ylabel": "Severity / Count",
-            },
-        }
-
     def _init_axes(self) -> None:
         for subsystem, config in self._plot_config.items():
             axis = config["axis"]
@@ -156,4 +159,11 @@ class SimulationDashboard:
             if updated:
                 axis.relim()
                 axis.autoscale_view(True, True, True)
+                xmin, xmax = axis.get_xlim()
+                if xmin == xmax:
+                    axis.set_xlim(xmin - 1, xmax + 1)
+                ymin, ymax = axis.get_ylim()
+                if ymin == ymax:
+                    pad = 1 if ymin == 0 else abs(ymin) * 0.1
+                    axis.set_ylim(ymin - pad, ymax + pad)
 
