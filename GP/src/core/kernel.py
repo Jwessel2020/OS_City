@@ -39,12 +39,18 @@ class CityKernel:
         buffer_size = int(self.config.get("metrics_buffer", 256))
         self._metrics_queue: Queue[dict[str, Any]] = Queue(maxsize=buffer_size)
         self._latest_metrics: dict[str, dict[str, Any]] = {}
+        self._pause_event = threading.Event()
+        self._pause_event.set()
 
     # ------------------------------------------------------------------
     # Lifecycle management
     # ------------------------------------------------------------------
-    def bootstrap(self) -> None:
+    def bootstrap(self, force: bool = False) -> None:
         """Instantiate and prepare subsystem threads."""
+
+        if force:
+            self._subsystems = []
+            self._tick_barrier = None
 
         if not self._subsystems:
             self._subsystems.extend(build_subsystems_from_config(self, self.config))
@@ -98,6 +104,8 @@ class CityKernel:
 
                 self._tick_index += 1
 
+                self._pause_event.wait()
+
                 elapsed = time.perf_counter() - tick_start
                 sleep_time = max(self.tick_duration - elapsed, 0)
                 if sleep_time > 0:
@@ -132,6 +140,15 @@ class CityKernel:
             self._metrics_queue.put_nowait({"type": "shutdown"})
         except Exception:  # queue may be full or closed
             pass
+
+    def reset(self) -> None:
+        """Reset internal state to allow a fresh run."""
+
+        self._tick_index = 0
+        self._metrics_queue = Queue(maxsize=self._metrics_queue.maxsize)
+        self._latest_metrics.clear()
+        self._pause_event.set()
+        self.bootstrap(force=True)
 
     # ------------------------------------------------------------------
     # Synchronization helpers
@@ -185,6 +202,18 @@ class CityKernel:
         except Exception:
             # Drop metrics if queue is saturated; warn once per subsystem
             logger.debug("Metrics queue is full; dropping event for %s", subsystem)
+
+    def set_control_state(self, controls: dict[str, Any]) -> None:
+        """Apply externally supplied control values."""
+
+        paused = controls.get("paused")
+        if isinstance(paused, bool):
+            if paused:
+                self._pause_event.clear()
+            else:
+                self._pause_event.set()
+
+        self.context.update_controls(controls)
 
     def get_latest_metrics(self, subsystem: str | None = None) -> dict[str, Any]:
         """Return latest metrics for requested subsystem or all subsystems."""

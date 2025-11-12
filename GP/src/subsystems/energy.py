@@ -38,6 +38,9 @@ class EnergyGrid(SubsystemThread):
         logger.info("Energy subsystem initialised (zones=%d)", self._zones)
 
     def execute_tick(self) -> None:
+        base_load_scalar = float(self.get_control("energy_base_load", 1.0))
+        base_load_scalar = max(0.2, min(base_load_scalar, 3.0))
+
         traffic_ev = float(self.get_metric("traffic", "ev_charging_demand_mwh", 0.0))
         waste_energy = float(self.get_metric("waste", "fleet_energy_mwh", 0.0))
         emergency_energy = float(self.get_metric("emergency", "grid_demand_mwh", 0.0))
@@ -55,8 +58,11 @@ class EnergyGrid(SubsystemThread):
 
         total_consumption += traffic_ev + waste_energy + emergency_energy
         weather_factor = 0.8 + self._rng.uniform(-0.18, 0.22)
-        self._renewables = max(0.0, self._base_load * weather_factor * 0.4)
-        thermal_generation = max(self._base_load * 0.6 + self._rng.uniform(-8.0, 12.0), 20.0)
+        self._renewables = max(0.0, self._base_load * base_load_scalar * weather_factor * 0.4)
+        thermal_generation = max(
+            self._base_load * base_load_scalar * 0.6 + self._rng.uniform(-8.0, 12.0),
+            20.0,
+        )
         self._generation = self._renewables + thermal_generation
 
         self._grid_losses = total_consumption * 0.05

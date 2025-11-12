@@ -119,6 +119,9 @@ class SubsystemThread(threading.Thread):
         _, metrics = latest
         return metrics.get(key, default)
 
+    def get_control(self, key: str, default: Any = None) -> Any:
+        return self.context.get_control(key, default)
+
     @property
     def identifier(self) -> str:
         return self._identifier

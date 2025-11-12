@@ -42,8 +42,12 @@ class TrafficManager(SubsystemThread):
         energy_surplus = float(self.get_metric("energy", "surplus_mw", 0.0))
         emergency_units = float(self.get_metric("emergency", "active_units", 0.0))
 
-        variability = self._rng.gauss(0, self._vehicles_per_tick * 0.1)
-        vehicles = max(int(self._vehicles_per_tick + variability), 0)
+        inflow_scalar = float(self.get_control("traffic_inflow", 1.0))
+        inflow_scalar = max(0.0, min(inflow_scalar, 3.0))
+        base_flow = self._vehicles_per_tick * inflow_scalar
+
+        variability = self._rng.gauss(0, base_flow * 0.1)
+        vehicles = max(int(base_flow + variability), 0)
 
         # Energy shortages reduce signal efficiency, emergency roadblocks reduce capacity
         self._signal_efficiency = max(0.6, 1.0 + min(energy_surplus, 0) / 150.0)
@@ -66,7 +70,8 @@ class TrafficManager(SubsystemThread):
 
         incident_probability = 0.02 + max(self._congestion_index - 0.85, 0) * 0.2
         self._incidents_this_tick = 0
-        if self._rng.random() < incident_probability:
+        emergency_override = bool(self.get_control("emergency_override", False))
+        if emergency_override or self._rng.random() < incident_probability:
             self._incidents_this_tick = self._rng.randint(1, 3)
             self._total_incidents += self._incidents_this_tick
 

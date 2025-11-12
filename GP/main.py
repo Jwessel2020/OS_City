@@ -39,8 +39,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--mode",
         default="headless",
-        choices=["headless", "visual", "report"],
-        help="Execution mode: headless logging, interactive dashboard, or offline report",
+        choices=["headless", "visual", "report", "dash"],
+        help="Execution mode: headless logging, matplotlib dashboard, offline report, or Dash control center",
     )
     parser.add_argument(
         "--history",
@@ -88,6 +88,8 @@ def main() -> None:
         _run_with_dashboard(kernel, args, logger)
     elif args.mode == "report":
         _run_with_report(kernel, args, logger)
+    elif args.mode == "dash":
+        _run_with_dash(kernel, logger, args)
     else:
         _run_headless(kernel, logger)
 
@@ -150,6 +152,22 @@ def _run_with_report(kernel: CityKernel, args: argparse.Namespace, logger: loggi
         fig = render_static_dashboard(records or recorder.data)
         fig.canvas.manager.set_window_title("Smart City Simulation Report")
         plt.show()
+
+
+def _run_with_dash(kernel: CityKernel, logger: logging.Logger, args: argparse.Namespace) -> None:
+    from src.core.controller import SimulationController
+    from src.viz.server import build_dashboard_app
+
+    controller = SimulationController(kernel)
+    app = build_dashboard_app(controller)
+
+    try:
+        logger.info("Starting Dash control center on http://127.0.0.1:8050")
+        app.run_server(debug=False, use_reloader=False)
+    except KeyboardInterrupt:
+        logger.warning("Dash server interrupted by user")
+    finally:
+        controller.stop()
 
 
 if __name__ == "__main__":

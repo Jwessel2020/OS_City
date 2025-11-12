@@ -39,6 +39,8 @@ class EmergencyUnit(SubsystemThread):
         new_incidents = int(expected_incidents)
         if self._rng.random() < (expected_incidents - new_incidents):
             new_incidents += 1
+        if bool(self.get_control("emergency_override", False)):
+            new_incidents += self._rng.randint(1, 2)
 
         if new_incidents:
             self._open_incidents += new_incidents

@@ -30,12 +30,22 @@ class WasteOps(SubsystemThread):
         self._fleet_energy_mwh = 0.0
 
     def execute_tick(self) -> None:
+        request_scalar = float(self.get_control("waste_request_rate", 1.0))
+        request_scalar = max(0.0, min(request_scalar, 3.0))
+
         congestion = float(self.get_metric("traffic", "congestion_index", 0.5))
         avg_speed = float(self.get_metric("traffic", "avg_speed_kmh", 35.0))
         energy_price = float(self.get_metric("energy", "price_index", 1.0))
 
         seasonal_variation = self._rng.uniform(-1, 2)
-        new_requests = max(0, int(self._requests_per_tick + seasonal_variation + congestion * 4))
+        new_requests = max(
+            0,
+            int(
+                (self._requests_per_tick * request_scalar)
+                + seasonal_variation
+                + congestion * 4
+            ),
+        )
         for _ in range(new_requests):
             self._pending_requests.append(self._rng.randint(1, 1000))
 
