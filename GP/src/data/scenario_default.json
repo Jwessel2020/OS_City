@@ -1,0 +1,29 @@
+{
+  "tick_duration": 0.5,
+  "subsystems": {
+    "traffic": {
+      "type": "traffic",
+      "thread_name": "TrafficManager",
+      "junctions": 12,
+      "vehicles_per_tick": 40
+    },
+    "energy": {
+      "type": "energy",
+      "thread_name": "EnergyGrid",
+      "zones": 4,
+      "base_load_mw": 120
+    },
+    "waste": {
+      "type": "waste",
+      "thread_name": "WasteOps",
+      "fleet_size": 6,
+      "requests_per_tick": 8
+    },
+    "emergency": {
+      "type": "emergency",
+      "thread_name": "EmergencyUnit",
+      "priority_threshold": 0.7
+    }
+  }
+}
+
