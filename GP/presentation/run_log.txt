@@ -1,0 +1,164 @@
+2025-11-12 19:24:12,258 [MainThread] DEBUG city_kernel_demo: Starting subsystem thread traffic
+2025-11-12 19:24:12,259 [traffic] DEBUG subsystem_base_demo: Thread traffic starting (ident=40760)
+2025-11-12 19:24:12,259 [MainThread] DEBUG city_kernel_demo: Tick 0 starting
+2025-11-12 19:24:12,259 [traffic] DEBUG subsystem_base_demo: Thread traffic entering main loop
+2025-11-12 19:24:12,259 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 0
+2025-11-12 19:24:12,259 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:12,259 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:12,259 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 0
+2025-11-12 19:24:12,259 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:12,260 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=5 -> vehicles=45, congestion=0.325
+2025-11-12 19:24:12,260 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:12,260 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:12,260 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 45, 'congestion_index': 0.33} (thread=traffic)
+2025-11-12 19:24:12,260 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 45, 'congestion_index': 0.33}
+2025-11-12 19:24:12,260 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 45, 'congestion_index': 0.33} (queue size=1)
+2025-11-12 19:24:12,260 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:12,260 [MainThread] DEBUG city_kernel_demo: Tick 0 complete (queue size=0)
+2025-11-12 19:24:12,461 [MainThread] DEBUG city_kernel_demo: Tick 1 starting
+2025-11-12 19:24:12,461 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 1
+2025-11-12 19:24:12,461 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 1
+2025-11-12 19:24:12,461 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:12,461 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:12,461 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-4 -> vehicles=41, congestion=0.305
+2025-11-12 19:24:12,461 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:12,461 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:12,461 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 41, 'congestion_index': 0.3} (thread=traffic)
+2025-11-12 19:24:12,462 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 41, 'congestion_index': 0.3}
+2025-11-12 19:24:12,462 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 41, 'congestion_index': 0.3} (queue size=1)
+2025-11-12 19:24:12,462 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:12,462 [MainThread] DEBUG city_kernel_demo: Tick 1 complete (queue size=0)
+2025-11-12 19:24:12,663 [MainThread] DEBUG city_kernel_demo: Tick 2 starting
+2025-11-12 19:24:12,663 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 2
+2025-11-12 19:24:12,663 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 2
+2025-11-12 19:24:12,664 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:12,664 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:12,664 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-5 -> vehicles=36, congestion=0.28
+2025-11-12 19:24:12,664 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:12,664 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:12,664 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 36, 'congestion_index': 0.28} (thread=traffic)
+2025-11-12 19:24:12,664 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 36, 'congestion_index': 0.28}
+2025-11-12 19:24:12,664 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 36, 'congestion_index': 0.28} (queue size=1)
+2025-11-12 19:24:12,664 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:12,664 [MainThread] DEBUG city_kernel_demo: Tick 2 complete (queue size=0)
+2025-11-12 19:24:12,865 [MainThread] DEBUG city_kernel_demo: Tick 3 starting
+2025-11-12 19:24:12,865 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 3
+2025-11-12 19:24:12,865 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 3
+2025-11-12 19:24:12,865 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:12,865 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:12,865 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-1 -> vehicles=35, congestion=0.275
+2025-11-12 19:24:12,865 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:12,865 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:12,865 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 35, 'congestion_index': 0.27} (thread=traffic)
+2025-11-12 19:24:12,865 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 35, 'congestion_index': 0.27}
+2025-11-12 19:24:12,865 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 35, 'congestion_index': 0.27} (queue size=1)
+2025-11-12 19:24:12,865 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:12,865 [MainThread] DEBUG city_kernel_demo: Tick 3 complete (queue size=0)
+2025-11-12 19:24:13,066 [MainThread] DEBUG city_kernel_demo: Tick 4 starting
+2025-11-12 19:24:13,066 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 4
+2025-11-12 19:24:13,066 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 4
+2025-11-12 19:24:13,066 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:13,066 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:13,066 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-2 -> vehicles=33, congestion=0.265
+2025-11-12 19:24:13,066 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:13,066 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:13,066 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 33, 'congestion_index': 0.26} (thread=traffic)
+2025-11-12 19:24:13,066 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 33, 'congestion_index': 0.26}
+2025-11-12 19:24:13,066 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 33, 'congestion_index': 0.26} (queue size=1)
+2025-11-12 19:24:13,066 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:13,066 [MainThread] DEBUG city_kernel_demo: Tick 4 complete (queue size=0)
+2025-11-12 19:24:13,268 [MainThread] DEBUG city_kernel_demo: Tick 5 starting
+2025-11-12 19:24:13,268 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 5
+2025-11-12 19:24:13,268 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 5
+2025-11-12 19:24:13,268 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:13,268 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:13,268 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-2 -> vehicles=31, congestion=0.255
+2025-11-12 19:24:13,268 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:13,268 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:13,268 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 31, 'congestion_index': 0.25} (thread=traffic)
+2025-11-12 19:24:13,268 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 31, 'congestion_index': 0.25}
+2025-11-12 19:24:13,268 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 31, 'congestion_index': 0.25} (queue size=1)
+2025-11-12 19:24:13,268 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:13,268 [MainThread] DEBUG city_kernel_demo: Tick 5 complete (queue size=0)
+2025-11-12 19:24:13,469 [MainThread] DEBUG city_kernel_demo: Tick 6 starting
+2025-11-12 19:24:13,469 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 6
+2025-11-12 19:24:13,469 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 6
+2025-11-12 19:24:13,469 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:13,469 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:13,469 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-3 -> vehicles=28, congestion=0.24
+2025-11-12 19:24:13,469 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:13,470 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:13,470 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 28, 'congestion_index': 0.24} (thread=traffic)
+2025-11-12 19:24:13,470 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 28, 'congestion_index': 0.24}
+2025-11-12 19:24:13,470 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 28, 'congestion_index': 0.24} (queue size=1)
+2025-11-12 19:24:13,470 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:13,470 [MainThread] DEBUG city_kernel_demo: Tick 6 complete (queue size=0)
+2025-11-12 19:24:13,671 [MainThread] DEBUG city_kernel_demo: Tick 7 starting
+2025-11-12 19:24:13,671 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 7
+2025-11-12 19:24:13,671 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 7
+2025-11-12 19:24:13,671 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:13,671 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:13,671 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-4 -> vehicles=24, congestion=0.22
+2025-11-12 19:24:13,671 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:13,671 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:13,671 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 24, 'congestion_index': 0.22} (thread=traffic)
+2025-11-12 19:24:13,671 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 24, 'congestion_index': 0.22}
+2025-11-12 19:24:13,671 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 24, 'congestion_index': 0.22} (queue size=1)
+2025-11-12 19:24:13,671 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:13,672 [MainThread] DEBUG city_kernel_demo: Tick 7 complete (queue size=1)
+2025-11-12 19:24:13,873 [MainThread] DEBUG city_kernel_demo: Tick 8 starting
+2025-11-12 19:24:13,873 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 8
+2025-11-12 19:24:13,873 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 8
+2025-11-12 19:24:13,873 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:13,873 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:13,873 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=5 -> vehicles=29, congestion=0.245
+2025-11-12 19:24:13,873 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:13,873 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:13,873 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 29, 'congestion_index': 0.24} (thread=traffic)
+2025-11-12 19:24:13,873 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 29, 'congestion_index': 0.24}
+2025-11-12 19:24:13,873 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 29, 'congestion_index': 0.24} (queue size=1)
+2025-11-12 19:24:13,874 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:13,874 [MainThread] DEBUG city_kernel_demo: Tick 8 complete (queue size=1)
+2025-11-12 19:24:14,074 [MainThread] DEBUG city_kernel_demo: Tick 9 starting
+2025-11-12 19:24:14,074 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 9
+2025-11-12 19:24:14,074 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 9
+2025-11-12 19:24:14,074 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:14,075 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:14,075 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=3 -> vehicles=32, congestion=0.26
+2025-11-12 19:24:14,075 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:14,075 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:14,075 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 32, 'congestion_index': 0.26} (thread=traffic)
+2025-11-12 19:24:14,075 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 32, 'congestion_index': 0.26}
+2025-11-12 19:24:14,075 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 32, 'congestion_index': 0.26} (queue size=1)
+2025-11-12 19:24:14,075 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:14,075 [MainThread] DEBUG city_kernel_demo: Tick 9 complete (queue size=1)
+2025-11-12 19:24:14,275 [MainThread] DEBUG city_kernel_demo: Tick 10 starting
+2025-11-12 19:24:14,275 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 10
+2025-11-12 19:24:14,275 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 10
+2025-11-12 19:24:14,275 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:14,275 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:14,275 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=-4 -> vehicles=28, congestion=0.24
+2025-11-12 19:24:14,275 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:14,275 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:14,275 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 28, 'congestion_index': 0.24} (thread=traffic)
+2025-11-12 19:24:14,275 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 28, 'congestion_index': 0.24}
+2025-11-12 19:24:14,276 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 28, 'congestion_index': 0.24} (queue size=1)
+2025-11-12 19:24:14,276 [MainThread] DEBUG city_kernel_demo: Tick 10 complete (queue size=1)
+2025-11-12 19:24:14,276 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:14,477 [MainThread] DEBUG city_kernel_demo: Tick 11 starting
+2025-11-12 19:24:14,477 [MainThread] DEBUG city_kernel_demo: Kernel releasing subsystems at tick 11
+2025-11-12 19:24:14,477 [MainThread] DEBUG city_kernel_demo: Kernel waiting for subsystems to check in at tick 11
+2025-11-12 19:24:14,477 [traffic] DEBUG subsystem_base_demo: Thread traffic before_tick
+2025-11-12 19:24:14,477 [traffic] DEBUG shared_context_demo: Control traffic_inflow read as 1.0 (thread=traffic)
+2025-11-12 19:24:14,477 [traffic] DEBUG traffic_subsystem_demo: Traffic execute_tick: inflow=1.0 variability=4 -> vehicles=32, congestion=0.26
+2025-11-12 19:24:14,477 [traffic] DEBUG subsystem_base_demo: Thread traffic after_tick
+2025-11-12 19:24:14,477 [traffic] DEBUG subsystem_base_demo: Thread traffic pushing metrics
+2025-11-12 19:24:14,477 [traffic] DEBUG shared_context_demo: Metrics updated for traffic: {'vehicles': 32, 'congestion_index': 0.26} (thread=traffic)
+2025-11-12 19:24:14,477 [traffic] DEBUG traffic_subsystem_demo: Traffic metrics reported: {'vehicles': 32, 'congestion_index': 0.26}
+2025-11-12 19:24:14,477 [traffic] DEBUG city_kernel_demo: Collected metrics from traffic: {'vehicles': 32, 'congestion_index': 0.26} (queue size=1)
+2025-11-12 19:24:14,477 [traffic] DEBUG city_kernel_demo: Thread traffic waiting for next tick
+2025-11-12 19:24:14,478 [MainThread] DEBUG city_kernel_demo: Tick 11 complete (queue size=0)
+2025-11-12 19:24:14,678 [MainThread] DEBUG city_kernel_demo: Kernel stopped after 12 ticks
+2025-11-12 19:24:14,678 [MainThread] DEBUG subsystem_base_demo: Thread traffic marked for stop
+2025-11-12 19:24:14,678 [MainThread] DEBUG shared_context_demo: Metrics snapshot requested (thread=MainThread)
+2025-11-12 19:24:14,678 [MainThread] INFO __main__: Simulation completed. Final snapshot: {'traffic': {'vehicles': 32, 'congestion_index': 0.26}}

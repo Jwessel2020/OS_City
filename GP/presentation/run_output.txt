@@ -1,0 +1,12 @@
+[tick #01] {'subsystem': 'traffic', 'vehicles': 45, 'congestion_index': 0.33}
+[tick #02] {'subsystem': 'traffic', 'vehicles': 41, 'congestion_index': 0.3}
+[tick #03] {'subsystem': 'traffic', 'vehicles': 36, 'congestion_index': 0.28}
+[tick #04] {'subsystem': 'traffic', 'vehicles': 35, 'congestion_index': 0.27}
+[tick #05] {'subsystem': 'traffic', 'vehicles': 33, 'congestion_index': 0.26}
+[tick #06] {'subsystem': 'traffic', 'vehicles': 31, 'congestion_index': 0.25}
+[tick #07] {'subsystem': 'traffic', 'vehicles': 28, 'congestion_index': 0.24}
+[tick #08] {'subsystem': 'traffic', 'vehicles': 24, 'congestion_index': 0.22}
+[tick #09] {'subsystem': 'traffic', 'vehicles': 29, 'congestion_index': 0.24}
+[tick #10] {'subsystem': 'traffic', 'vehicles': 32, 'congestion_index': 0.26}
+[tick #11] {'subsystem': 'traffic', 'vehicles': 28, 'congestion_index': 0.24}
+[tick #12] {'subsystem': 'traffic', 'vehicles': 32, 'congestion_index': 0.26}
