@@ -143,6 +143,9 @@
     "path": "artifacts/smart_city.sqlite3",
     "label": "default_scenario",
     "log_path": "logs/sqlite_trace.log"
+  },
+  "logging": {
+    "runtime_log": "logs/runtime.log"
   }
 }
 

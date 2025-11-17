@@ -54,7 +54,9 @@ def parse_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_args()
 
-    configure_logging(args.log_level)
+    config = load_simulation_config(args.config)
+    runtime_log = config.get("logging", {}).get("runtime_log")
+    configure_logging(args.log_level, runtime_log)
     logger = logging.getLogger(__name__)
 
     if args.ticks is not None and args.ticks <= 0:
@@ -63,8 +65,6 @@ def main() -> None:
     if not args.config.exists():
         parser_hint = "Try generating a configuration file in src/data/"
         raise FileNotFoundError(f"Configuration file not found: {args.config}. {parser_hint}")
-
-    config = load_simulation_config(args.config)
 
     if args.mode == "report" and args.ticks is None:
         args.ticks = int(config.get("report_ticks", 180))
