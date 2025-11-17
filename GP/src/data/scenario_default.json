@@ -12,12 +12,116 @@
     "energy": {
       "type": "energy",
       "thread_name": "EnergyGrid",
-      "zones": 4,
       "base_load_mw": 140,
+      "base_price_mwh": 70,
       "renewable_share": 0.42,
       "storage_capacity_mwh": 320,
       "initial_storage_pct": 0.55,
-      "seed": 1337
+      "seed": 1337,
+      "pricing": {
+        "wholesale_tariff": 58,
+        "retail_markup": 0.18,
+        "carbon_price_per_ton": 42,
+        "transmission_cost_per_mw": 0.9
+      },
+      "weather_profile": {
+        "base_temp_c": 23,
+        "daily_variation": 7,
+        "seasonal_offset": -1.5,
+        "humidity_base": 0.55,
+        "foot_traffic_base": 1.0,
+        "foot_traffic_temp_sensitivity": 0.028
+      },
+      "zones": [
+        {
+          "id": "north",
+          "name": "North Transit",
+          "lat": 40.82,
+          "lon": -73.95,
+          "base_load_mw": 58,
+          "renewable_share": 0.52,
+          "residential_share": 0.36,
+          "commercial_share": 0.26,
+          "industrial_share": 0.18,
+          "transport_weight": 1.2,
+          "carbon_factor": 0.28,
+          "tariff_wholesale": 60,
+          "retail_markup": 0.16,
+          "comfort_temp_c": 22,
+          "cooling_coefficient": 0.012,
+          "heating_coefficient": 0.01,
+          "foot_traffic_weight": 1.1
+        },
+        {
+          "id": "central",
+          "name": "Central Business",
+          "lat": 40.76,
+          "lon": -73.98,
+          "base_load_mw": 62,
+          "renewable_share": 0.34,
+          "residential_share": 0.32,
+          "commercial_share": 0.3,
+          "industrial_share": 0.22,
+          "transport_weight": 1.0,
+          "carbon_factor": 0.35,
+          "tariff_wholesale": 65,
+          "retail_markup": 0.2,
+          "comfort_temp_c": 23,
+          "cooling_coefficient": 0.015,
+          "heating_coefficient": 0.012,
+          "foot_traffic_weight": 1.3
+        },
+        {
+          "id": "west",
+          "name": "West Industrial",
+          "lat": 40.74,
+          "lon": -74.05,
+          "base_load_mw": 48,
+          "renewable_share": 0.3,
+          "residential_share": 0.28,
+          "commercial_share": 0.22,
+          "industrial_share": 0.32,
+          "transport_weight": 0.8,
+          "carbon_factor": 0.42,
+          "tariff_wholesale": 55,
+          "retail_markup": 0.14,
+          "comfort_temp_c": 21,
+          "cooling_coefficient": 0.009,
+          "heating_coefficient": 0.013,
+          "foot_traffic_weight": 0.8
+        },
+        {
+          "id": "harbor",
+          "name": "Harbor Logistics",
+          "lat": 40.70,
+          "lon": -73.90,
+          "base_load_mw": 46,
+          "renewable_share": 0.48,
+          "residential_share": 0.34,
+          "commercial_share": 0.2,
+          "industrial_share": 0.24,
+          "transport_weight": 1.0,
+          "carbon_factor": 0.31,
+          "tariff_wholesale": 57,
+          "retail_markup": 0.17,
+          "comfort_temp_c": 22,
+          "cooling_coefficient": 0.011,
+          "heating_coefficient": 0.011,
+          "foot_traffic_weight": 1.1
+        }
+      ],
+      "transmission_lines": [
+        {"id": "north_central", "from": "north", "to": "central", "capacity_mw": 100, "loss_pct": 3.4},
+        {"id": "central_west", "from": "central", "to": "west", "capacity_mw": 85, "loss_pct": 3.8},
+        {"id": "west_harbor", "from": "west", "to": "harbor", "capacity_mw": 75, "loss_pct": 4.1},
+        {"id": "harbor_north", "from": "harbor", "to": "north", "capacity_mw": 80, "loss_pct": 3.6},
+        {"id": "central_harbor", "from": "central", "to": "harbor", "capacity_mw": 65, "loss_pct": 3.9}
+      ],
+      "local_costs": {
+        "demand_response_cost_per_mwh": 22,
+        "foot_traffic_penalty": 6.5,
+        "temperature_penalty": 4.0
+      }
     },
     "waste": {
       "type": "waste",
@@ -33,6 +137,12 @@
       "response_units": 8,
       "seed": 2025
     }
+  },
+  "database": {
+    "enabled": true,
+    "path": "artifacts/smart_city.sqlite3",
+    "label": "default_scenario",
+    "log_path": "logs/sqlite_trace.log"
   }
 }
 

@@ -13,4 +13,5 @@ venv/
 bandit-logs/
 *.log
 *.sqlite3
+logs/
 

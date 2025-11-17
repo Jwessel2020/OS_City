@@ -10,6 +10,7 @@ from queue import Empty, Queue
 from typing import Any, Optional
 
 from src.core.context import CityContext
+from src.data.database import SimulationDatabase
 from src.subsystems.base import SubsystemThread
 from src.subsystems.factory import build_subsystems_from_config
 
@@ -41,6 +42,11 @@ class CityKernel:
         self._latest_metrics: dict[str, dict[str, Any]] = {}
         self._pause_event = threading.Event()
         self._pause_event.set()
+        storage_cfg = config.get("database", {})
+        self._storage_cfg = storage_cfg if isinstance(storage_cfg, dict) else {}
+        self._storage: SimulationDatabase | None = None
+        self._run_id: int | None = None
+        self._run_open = False
 
     # ------------------------------------------------------------------
     # Lifecycle management
@@ -81,6 +87,7 @@ class CityKernel:
             msg = "Kernel must be bootstrapped before running"
             raise RuntimeError(msg)
 
+        self._start_run_record()
         self._running.set()
 
         for subsystem in self._subsystems:
@@ -89,6 +96,7 @@ class CityKernel:
 
         logger.info("Kernel entering main loop with %d subsystems", len(self._subsystems))
 
+        run_status = "completed"
         try:
             while self._should_continue():
                 tick_start = time.perf_counter()
@@ -110,8 +118,14 @@ class CityKernel:
                 sleep_time = max(self.tick_duration - elapsed, 0)
                 if sleep_time > 0:
                     time.sleep(sleep_time)
+        except Exception:
+            run_status = "error"
+            raise
         finally:
+            if run_status == "completed" and not self._running.is_set():
+                run_status = "stopped"
             self._running.clear()
+            self._finalize_run(run_status)
 
     def shutdown(self) -> None:
         """Signal subsystems to stop and wait for their completion."""
@@ -204,6 +218,11 @@ class CityKernel:
         except Exception:
             # Drop metrics if queue is saturated; warn once per subsystem
             logger.debug("Metrics queue is full; dropping event for %s", subsystem)
+        if self._storage and self._run_open and self._run_id is not None:
+            try:
+                self._storage.record_metrics(self._run_id, tick, subsystem, metrics)
+            except Exception:
+                logger.exception("Failed to persist metrics for subsystem %s", subsystem)
 
     def set_control_state(self, controls: dict[str, Any]) -> None:
         """Apply externally supplied control values."""
@@ -216,6 +235,11 @@ class CityKernel:
                 self._pause_event.set()
 
         self.context.update_controls(controls)
+        if self._storage and self._run_open and self._run_id is not None:
+            try:
+                self._storage.record_control_event(self._run_id, controls)
+            except Exception:
+                logger.exception("Failed to persist control state update")
 
     def get_latest_metrics(self, subsystem: str | None = None) -> dict[str, Any]:
         """Return latest metrics for requested subsystem or all subsystems."""
@@ -238,4 +262,38 @@ class CityKernel:
         if self.max_ticks is None:
             return True
         return self._tick_index < self.max_ticks
+
+    # ------------------------------------------------------------------
+    # Persistence helpers
+    # ------------------------------------------------------------------
+    def _ensure_storage(self) -> None:
+        if self._storage is not None:
+            return
+        if not self._storage_cfg.get("enabled"):
+            return
+        path = self._storage_cfg.get("path", "artifacts/smart_city.sqlite3")
+        log_path = self._storage_cfg.get("log_path", "logs/sqlite_trace.log")
+        self._storage = SimulationDatabase(path, log_path=log_path)
+
+    def _start_run_record(self) -> None:
+        self._ensure_storage()
+        if self._storage is None or self._run_open:
+            return
+        label = self._storage_cfg.get("label") or self.config.get("run_label")
+        self._run_id = self._storage.start_run(
+            label=label,
+            tick_duration=self.tick_duration,
+            max_ticks=self.max_ticks,
+            config=self.config,
+        )
+        self._run_open = True
+
+    def _finalize_run(self, status: str) -> None:
+        if not self._run_open or self._storage is None or self._run_id is None:
+            return
+        try:
+            self._storage.complete_run(self._run_id, status=status)
+        finally:
+            self._run_open = False
+            self._run_id = None
 

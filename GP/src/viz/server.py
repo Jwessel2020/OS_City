@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import json
 import logging
+import os
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
@@ -15,6 +17,14 @@ from src.core.controller import SimulationController
 logger = logging.getLogger(__name__)
 
 ASSETS_PATH = Path(__file__).resolve().parent / "assets"
+GEO_PATH = ASSETS_PATH / "geo" / "city_zones.geojson"
+CITY_GEOJSON = json.loads(GEO_PATH.read_text(encoding="utf-8")) if GEO_PATH.exists() else None
+if CITY_GEOJSON:
+    for feature in CITY_GEOJSON.get("features", []):
+        feature_id = feature.get("properties", {}).get("id")
+        if feature_id is not None:
+            feature["id"] = feature_id
+MAPBOX_TOKEN = os.getenv("MAPBOX_TOKEN")
 
 DEFAULT_SLIDER_VALUES = {
     "traffic-slider": 100,
@@ -135,6 +145,16 @@ def build_dashboard_app(controller: SimulationController) -> Dash:
                 ],
             ),
             html.Div(
+                className="kpi-grid",
+                children=[
+                    _build_kpi("Grid Efficiency", "kpi-transmission"),
+                    _build_kpi("Renewable Mix", "kpi-renewable"),
+                    _build_kpi("Storage Round Trip", "kpi-storage"),
+                    _build_kpi("Avg Retail Price", "kpi-price"),
+                    _build_kpi("Carbon Intensity", "kpi-carbon"),
+                ],
+            ),
+            html.Div(
                 className="chart-grid",
                 children=[
                     dcc.Graph(
@@ -159,6 +179,12 @@ def build_dashboard_app(controller: SimulationController) -> Dash:
                         id="emergency-chart",
                         className="chart-card",
                         style={"height": "320px"},
+                        config={"displayModeBar": False, "displaylogo": False},
+                    ),
+                    dcc.Graph(
+                        id="energy-map",
+                        className="chart-card chart-wide",
+                        style={"height": "360px"},
                         config={"displayModeBar": False, "displaylogo": False},
                     ),
                 ],
@@ -215,6 +241,16 @@ def _build_slider(
     if description:
         children.insert(1, html.P(description, className="slider-description"))
     return html.Div(className="slider-control", children=children)
+
+
+def _build_kpi(label: str, element_id: str) -> html.Div:
+    return html.Div(
+        className="kpi-card",
+        children=[
+            html.Span(label, className="kpi-label"),
+            html.Span("—", id=element_id, className="kpi-value"),
+        ],
+    )
 
 
 def register_callbacks(app: Dash, controller: SimulationController) -> None:
@@ -281,7 +317,13 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
         Output("energy-chart", "figure"),
         Output("waste-chart", "figure"),
         Output("emergency-chart", "figure"),
+        Output("energy-map", "figure"),
         Output("event-log-content", "children"),
+        Output("kpi-transmission", "children"),
+        Output("kpi-renewable", "children"),
+        Output("kpi-storage", "children"),
+        Output("kpi-price", "children"),
+        Output("kpi-carbon", "children"),
         Input("metric-poll", "n_intervals"),
     )
     def refresh_metrics(_interval: int):
@@ -293,6 +335,10 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
         energy_fig = _build_line_chart(history.get("energy", []), "Energy Grid")
         waste_fig = _build_line_chart(history.get("waste", []), "Waste Operations")
         emergency_fig = _build_line_chart(history.get("emergency", []), "Emergency Response")
+        latest_energy = history.get("energy", [])
+        energy_snapshot = latest_energy[-1][1] if latest_energy else {}
+        energy_map = _build_energy_map(energy_snapshot)
+        kpis = energy_snapshot.get("kpis", {})
 
         log_lines: list[str] = []
         for subsystem in ("traffic", "energy", "waste", "emergency"):
@@ -307,6 +353,12 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
             log_lines.append(f"[{last_tick}] {subsystem.title()}: {preview}")
         log_text = "\n".join(log_lines[-12:]) or "No metrics yet. Press Start to begin the simulation."
 
+        kpi_transmission = f"{kpis.get('transmission_efficiency', 0) * 100:0.1f}%"
+        kpi_renewable = f"{kpis.get('renewable_utilization', 0) * 100:0.1f}%"
+        kpi_storage = f"{kpis.get('storage_round_trip_efficiency', 0) * 100:0.1f}%"
+        kpi_price = f"${kpis.get('avg_price_mwh', 0):.2f}/MWh"
+        kpi_carbon = f"{kpis.get('avg_carbon_intensity', 0):.2f} t/MWh"
+
         return (
             f"Status: {status}",
             f"Tick: {tick}",
@@ -314,7 +366,13 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
             energy_fig,
             waste_fig,
             emergency_fig,
+            energy_map,
             log_text,
+            kpi_transmission,
+            kpi_renewable,
+            kpi_storage,
+            kpi_price,
+            kpi_carbon,
         )
 
     @app.callback(Output("start-btn", "n_clicks"), Input("start-btn", "n_clicks"), prevent_initial_call=True)
@@ -402,6 +460,115 @@ def _build_line_chart(history: Iterable[tuple[int, dict[str, Any]]], title: str)
     )
     fig.update_xaxes(showgrid=False, zeroline=False, color="#94a3b8")
     fig.update_yaxes(showgrid=True, gridwidth=0.3, gridcolor="rgba(148,163,184,0.2)", color="#94a3b8")
+    return fig
+
+
+def _build_energy_map(latest_snapshot: dict[str, Any]) -> go.Figure:
+    fig = go.Figure()
+    zones = latest_snapshot.get("zones", [])
+    lines = latest_snapshot.get("lines", [])
+
+    if CITY_GEOJSON and zones:
+        zone_values = {zone["id"]: zone.get("price_retail", 0.0) for zone in zones}
+        prices = list(zone_values.values())
+        zmin = min(prices) if prices else 0.0
+        zmax = max(prices) if prices else 1.0
+        fig.add_choroplethmapbox(
+            geojson=CITY_GEOJSON,
+            locations=list(zone_values.keys()),
+            z=list(zone_values.values()),
+            zmin=zmin,
+            zmax=zmax if zmax > zmin else zmin + 1,
+            colorscale="Turbo",
+            marker_opacity=0.75,
+            marker_line_width=1.5,
+            colorbar=dict(title="Retail $/MWh"),
+            showscale=True,
+        )
+    elif not zones:
+        fig.add_annotation(
+            text="Waiting for grid data…",
+            xref="paper",
+            yref="paper",
+            x=0.5,
+            y=0.5,
+            showarrow=False,
+            font=dict(color="#94a3b8", size=14),
+        )
+
+    if zones:
+        fig.add_trace(
+            go.Scattermapbox(
+                lon=[zone.get("lon") for zone in zones],
+                lat=[zone.get("lat") for zone in zones],
+                mode="markers+text",
+                text=[zone.get("name") for zone in zones],
+                textposition="top center",
+                marker=dict(
+                    size=[max(12.0, zone.get("load_mw", 0.0) / 2.5) for zone in zones],
+                    color="#0ea5e9",
+                    opacity=0.7,
+                ),
+                hovertemplate=(
+                    "%{text}<br>"
+                    "Load %{customdata[0]:.1f} MW<br>"
+                    "Retail $%{customdata[1]:.2f}/MWh<br>"
+                    "Carbon %{customdata[2]:.2f} t/MWh<br>"
+                    "Net import %{customdata[3]:.1f} MW"
+                ),
+                customdata=[
+                    [
+                        zone.get("load_mw", 0.0),
+                        zone.get("price_retail", 0.0),
+                        zone.get("carbon_intensity", 0.0),
+                        zone.get("net_import_mw", 0.0),
+                    ]
+                    for zone in zones
+                ],
+                showlegend=False,
+            )
+        )
+
+    if lines:
+        for line in lines:
+            flow = line.get("flow_mw", 0.0)
+            util = line.get("utilization", 0.0)
+            width = 1.2 + util * 5.0
+            color = "#34d399" if flow >= 0 else "#f472b6"
+            fig.add_trace(
+                go.Scattermapbox(
+                    lon=[line.get("from_lon"), line.get("to_lon")],
+                    lat=[line.get("from_lat"), line.get("to_lat")],
+                    mode="lines",
+                    line=dict(width=width, color=color),
+                    opacity=0.75,
+                    hovertemplate=(
+                        f"{line.get('from')} → {line.get('to')}<br>"
+                        "Flow %{customdata[0]:.1f} MW<br>"
+                        "Utilization %{customdata[1]:.0%}<extra></extra>"
+                    ),
+                    customdata=[[abs(flow), util]],
+                    showlegend=False,
+                )
+            )
+
+    if zones:
+        avg_lat = sum(zone.get("lat", 0.0) for zone in zones) / len(zones)
+        avg_lon = sum(zone.get("lon", 0.0) for zone in zones) / len(zones)
+    else:
+        avg_lat, avg_lon = 40.75, -73.98
+
+    fig.update_layout(
+        mapbox=dict(
+            style="carto-positron" if MAPBOX_TOKEN else "open-street-map",
+            accesstoken=MAPBOX_TOKEN,
+            zoom=10.2,
+            center={"lat": avg_lat, "lon": avg_lon},
+        ),
+        margin=dict(l=0, r=0, t=30, b=0),
+        paper_bgcolor="rgba(0,0,0,0)",
+        title={"text": "Grid Topology (location-aware)", "y": 0.98, "x": 0.02, "xanchor": "left"},
+    )
     return fig
 
 
