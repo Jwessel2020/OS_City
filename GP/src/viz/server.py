@@ -36,6 +36,37 @@ DEFAULT_SLIDER_VALUES = {
     "staff-slider": 8,
 }
 
+# Scenario presets for quick configuration
+SCENARIO_OPTIONS = {
+    "Normal Operations": {},
+    "Rush Hour": {
+        "traffic_inflow": 3.0,  # 300%
+        "traffic_signal_bias": 1.5,  # 150%
+    },
+    "Power Outage": {
+        "renewable_boost": 0.0,  # 0%
+        "energy_base_load": 0.5,  # 50%
+        "traffic_signals_offline": True,
+    },
+    "Natural Disaster (Earthquake)": {
+        "emergency_staff": 16,  # 200% of default 8
+        "road_capacity": 0.6,  # 60% capacity (damaged roads)
+        "power_lines_down": 5,
+        "waste_request_rate": 4.0,  # 400% (debris)
+    },
+    "Heat Wave": {
+        "energy_base_load": 1.8,  # 180% (AC demand)
+        "street_lighting_load": 15.0,  # Additional load for cooling/lighting
+        "waste_request_rate": 1.5,  # 150% (organic waste increase)
+    },
+    "Night Mode": {
+        "traffic_inflow": 0.2,  # 20%
+        "energy_base_load": 0.4,  # 40%
+        "waste_request_rate": 0.1,  # 10%
+        "street_lighting_load": 8.0,  # Street lighting active
+    },
+}
+
 
 def build_dashboard_app(controller: SimulationController) -> Dash:
     dash_app = dash.Dash(
@@ -78,6 +109,24 @@ def build_dashboard_app(controller: SimulationController) -> Dash:
                     html.Button("Pause / Resume", id="pause-btn", n_clicks=0, className="btn btn-secondary"),
                     html.Button("Reset", id="reset-btn", n_clicks=0, className="btn"),
                     html.Button("Trigger Emergency", id="emergency-btn", n_clicks=0, className="btn btn-danger"),
+                    html.Div(
+                        className="scenario-selector",
+                        style={"marginLeft": "20px", "display": "inline-block"},
+                        children=[
+                            html.Label("Scenario Preset:", htmlFor="scenario-dropdown", style={"marginRight": "10px", "color": "#e2e8f0"}),
+                            dcc.Dropdown(
+                                id="scenario-dropdown",
+                                options=[
+                                    {"label": name, "value": name}
+                                    for name in SCENARIO_OPTIONS.keys()
+                                ],
+                                value="Normal Operations",
+                                clearable=False,
+                                style={"width": "250px", "display": "inline-block"},
+                            ),
+                            html.Button("Apply Scenario", id="apply-scenario-btn", n_clicks=0, className="btn", style={"marginLeft": "10px"}),
+                        ],
+                    ),
                 ],
             ),
             html.Div(
@@ -188,6 +237,34 @@ def build_dashboard_app(controller: SimulationController) -> Dash:
                         config={"displayModeBar": False, "displaylogo": False},
                     ),
                 ],
+            ),
+            html.Div(
+                className="digital-twin-panel",
+                style={"marginTop": "20px", "padding": "20px", "backgroundColor": "rgba(15, 23, 42, 0.6)", "borderRadius": "8px"},
+                children=[
+                    html.H3("Digital Twin Intelligence", style={"color": "#e2e8f0"}),
+                    html.Div(
+                        style={"display": "flex", "gap": "20px", "alignItems": "center", "marginBottom": "15px"},
+                        children=[
+                            html.Button("Enable Optimization", id="opt-toggle-btn", n_clicks=0, className="btn"),
+                            html.Span(id="opt-status-text", style={"color": "#94a3b8"}),
+                        ]
+                    ),
+                    html.Div(
+                        className="twin-grid",
+                        style={"display": "grid", "gridTemplateColumns": "1fr 1fr", "gap": "20px"},
+                        children=[
+                            html.Div([
+                                html.H4("Active Optimization Goals", style={"color": "#cbd5e1"}),
+                                html.Pre(id="opt-goals-display", style={"color": "#94a3b8", "backgroundColor": "rgba(0,0,0,0.3)", "padding": "10px", "borderRadius": "4px"})
+                            ]),
+                            html.Div([
+                                html.H4("Deep Analytical Insights", style={"color": "#cbd5e1"}),
+                                html.Pre(id="analytics-display", style={"color": "#94a3b8", "backgroundColor": "rgba(0,0,0,0.3)", "padding": "10px", "borderRadius": "4px"})
+                            ])
+                        ]
+                    )
+                ]
             ),
             html.Div(
                 className="log-card",
@@ -311,19 +388,25 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
     )
 
     @app.callback(
-        Output("status-indicator", "children"),
-        Output("tick-display", "children"),
-        Output("traffic-chart", "figure"),
-        Output("energy-chart", "figure"),
-        Output("waste-chart", "figure"),
-        Output("emergency-chart", "figure"),
-        Output("energy-map", "figure"),
-        Output("event-log-content", "children"),
-        Output("kpi-transmission", "children"),
-        Output("kpi-renewable", "children"),
-        Output("kpi-storage", "children"),
-        Output("kpi-price", "children"),
-        Output("kpi-carbon", "children"),
+        [
+            Output("status-indicator", "children"),
+            Output("tick-display", "children"),
+            Output("traffic-chart", "figure"),
+            Output("energy-chart", "figure"),
+            Output("waste-chart", "figure"),
+            Output("emergency-chart", "figure"),
+            Output("energy-map", "figure"),
+            Output("event-log-content", "children"),
+            Output("kpi-transmission", "children"),
+            Output("kpi-renewable", "children"),
+            Output("kpi-storage", "children"),
+            Output("kpi-price", "children"),
+            Output("kpi-carbon", "children"),
+            Output("opt-status-text", "children"),
+            Output("opt-goals-display", "children"),
+            Output("analytics-display", "children"),
+            Output("opt-toggle-btn", "children"),
+        ],
         Input("metric-poll", "n_intervals"),
     )
     def refresh_metrics(_interval: int):
@@ -331,6 +414,7 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
         tick = controller.kernel.current_tick()
         status = "Running" if controller.is_running() else "Stopped"
 
+        # ... existing chart building ...
         traffic_fig = _build_line_chart(history.get("traffic", []), "Traffic Network")
         energy_fig = _build_line_chart(history.get("energy", []), "Energy Grid")
         waste_fig = _build_line_chart(history.get("waste", []), "Waste Operations")
@@ -340,6 +424,7 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
         energy_map = _build_energy_map(energy_snapshot)
         kpis = energy_snapshot.get("kpis", {})
 
+        # ... log building ...
         log_lines: list[str] = []
         for subsystem in ("traffic", "energy", "waste", "emergency"):
             entries = history.get(subsystem, [])
@@ -359,6 +444,39 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
         kpi_price = f"${kpis.get('avg_price_mwh', 0):.2f}/MWh"
         kpi_carbon = f"{kpis.get('avg_carbon_intensity', 0):.2f} t/MWh"
 
+        # Digital Twin Data
+        kernel_hist = history.get("kernel", [])
+        if kernel_hist:
+            _, last_kernel_metrics = kernel_hist[-1]
+            opt_status = last_kernel_metrics.get("optimizer_status", {})
+            analytics = last_kernel_metrics.get("analytics_insights", {})
+            
+            opt_active = opt_status.get("active", False)
+            opt_text = f"Status: {'ACTIVE' if opt_active else 'IDLE'} | Global Error: {opt_status.get('global_error', 0.0):.3f}"
+            
+            goals_str = "\n".join([
+                f"{g['name']}: target={g['target']} err={g['current_error']:.3f}"
+                for g in opt_status.get("goals", [])
+            ]) or "No active goals"
+            
+            # Display narratives instead of raw correlations
+            narratives = analytics.get("narratives", [])
+            if narratives:
+                analytics_str = "Real-time Insights:\n\n" + "\n\n".join(narratives)
+            else:
+                # Fallback if no narratives yet
+                corr = analytics.get("correlations", {})
+                analytics_str = "Calculating insights..."
+                if corr:
+                    analytics_str = "Correlations (Pearson):\n" + "\n".join([f"  {k}: {v:.2f}" for k,v in corr.items()])
+            
+            opt_btn_label = "Disable Optimization" if opt_active else "Enable Optimization"
+        else:
+            opt_text = "Waiting for kernel..."
+            goals_str = "..."
+            analytics_str = "Waiting for enough data..."
+            opt_btn_label = "Enable Optimization"
+
         return (
             f"Status: {status}",
             f"Tick: {tick}",
@@ -373,7 +491,21 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
             kpi_storage,
             kpi_price,
             kpi_carbon,
+            opt_text,
+            goals_str,
+            analytics_str,
+            opt_btn_label
         )
+
+    @app.callback(
+        Output("opt-toggle-btn", "n_clicks"), 
+        Input("opt-toggle-btn", "n_clicks"),
+        prevent_initial_call=True
+    )
+    def toggle_optimization(_clicks: int):
+        current = controller.kernel.optimizer._active
+        controller.kernel.optimizer.toggle(not current)
+        return 0
 
     @app.callback(Output("start-btn", "n_clicks"), Input("start-btn", "n_clicks"), prevent_initial_call=True)
     def handle_start(_clicks: int):
@@ -415,6 +547,61 @@ def register_callbacks(app: Dash, controller: SimulationController) -> None:
     def handle_emergency(_clicks: int):
         controller.trigger_emergency(duration=5.0)
         return 0
+
+    @app.callback(
+        Output("apply-scenario-btn", "n_clicks"),
+        Output("traffic-slider", "value", allow_duplicate=True),
+        Output("signal-slider", "value", allow_duplicate=True),
+        Output("energy-slider", "value", allow_duplicate=True),
+        Output("renewable-slider", "value", allow_duplicate=True),
+        Output("waste-slider", "value", allow_duplicate=True),
+        Output("fleet-slider", "value", allow_duplicate=True),
+        Output("staff-slider", "value", allow_duplicate=True),
+        Input("apply-scenario-btn", "n_clicks"),
+        Input("scenario-dropdown", "value"),
+        prevent_initial_call=True,
+    )
+    def apply_scenario(_clicks: int, scenario_name: str):
+        """Apply scenario preset to all controls."""
+        if not scenario_name or scenario_name not in SCENARIO_OPTIONS:
+            scenario_name = "Normal Operations"
+        
+        scenario = SCENARIO_OPTIONS.get(scenario_name, {})
+        defaults = DEFAULT_SLIDER_VALUES.copy()
+        
+        # Apply scenario settings to controller
+        for key, value in scenario.items():
+            controller.set_control(key, value)
+        
+        # Update slider values to match scenario
+        # Convert percentage values to slider values (0-200 range for most)
+        traffic_val = int(scenario.get("traffic_inflow", 1.0) * 100)
+        signal_val = int(scenario.get("traffic_signal_bias", 1.0) * 100)
+        energy_val = int(scenario.get("energy_base_load", 1.0) * 100)
+        renewable_val = int(scenario.get("renewable_boost", 0.0) * 100)
+        waste_val = int(scenario.get("waste_request_rate", 1.0) * 100)
+        fleet_val = scenario.get("waste_fleet_size", defaults["fleet-slider"])
+        staff_val = scenario.get("emergency_staff", defaults["staff-slider"])
+        
+        # Clamp values to valid ranges
+        traffic_val = max(40, min(200, traffic_val))
+        signal_val = max(50, min(150, signal_val))
+        energy_val = max(50, min(200, energy_val))
+        renewable_val = max(0, min(100, renewable_val))
+        waste_val = max(0, min(200, waste_val))
+        fleet_val = max(2, min(16, fleet_val))
+        staff_val = max(4, min(24, staff_val))
+        
+        return (
+            0,  # Reset button clicks
+            traffic_val,
+            signal_val,
+            energy_val,
+            renewable_val,
+            waste_val,
+            fleet_val,
+            staff_val,
+        )
 
 
 def _build_line_chart(history: Iterable[tuple[int, dict[str, Any]]], title: str) -> go.Figure:
@@ -586,4 +773,3 @@ def _format_metric(value: Any) -> str:
     if isinstance(value, bool):
         return "yes" if value else "no"
     return str(value)
-

@@ -151,9 +151,17 @@ class EnergyGrid(SubsystemThread):
 
         renewable_boost = float(self.get_control("renewable_boost", 0.0))
         renewable_boost = max(0.0, min(renewable_boost, 1.0))
+        
+        # Street lighting load (scenario parameter)
+        street_lighting = float(self.get_control("street_lighting_load", 0.0))
+        power_lines_down = int(self.get_control("power_lines_down", 0))
 
-        traffic_ev = float(self.get_metric("traffic", "ev_charging_demand_mwh", 0.0))
-        waste_energy = float(self.get_metric("waste", "fleet_energy_mwh", 0.0))
+        # Calculate transport energy directly from traffic vehicles (simplified)
+        traffic_vehicles = float(self.get_metric("traffic", "vehicles", 0.0))
+        waste_route_km = float(self.get_metric("waste", "avg_route_km", 0.0))
+        # Simplified transport energy calculation
+        traffic_ev = max(0.0, traffic_vehicles * 0.02)  # Simplified EV demand
+        waste_energy = max(0.0, waste_route_km * 0.015)  # Simplified fleet energy
         emergency_energy = float(self.get_metric("emergency", "grid_demand_mwh", 0.0))
 
         transport_energy = traffic_ev + waste_energy
@@ -169,6 +177,8 @@ class EnergyGrid(SubsystemThread):
         temperature = weather["temperature_c"]
         foot_traffic_index = weather["foot_traffic_index"]
         solar_index = weather["solar_index"]
+        weather_effects = weather.get("weather_effects", {})
+        wind_multiplier = weather.get("wind_multiplier", 1.0)
 
         zone_runtime: Dict[str, dict[str, float]] = {}
         total_consumption = 0.0
@@ -191,13 +201,23 @@ class EnergyGrid(SubsystemThread):
             industrial = base_load * zone["industrial_share"] * industrial_scalar
             mobility = transport_energy * zone["transport_weight"] * (1.0 + 0.12 * foot_traffic_index)
             critical = critical_energy / max(len(self._zones), 1)
+            lighting = street_lighting / max(len(self._zones), 1)  # Distribute street lighting across zones
 
-            consumption = residential + commercial + industrial + mobility + critical
+            consumption = residential + commercial + industrial + mobility + critical + lighting
 
+            # Apply weather effects to renewable generation
+            renewable_multiplier = weather_effects.get("renewable", 1.0)
+            # Solar generation affected by solar_index and weather
+            solar_generation = (0.6 + 0.4 * solar_index) * weather_effects.get("solar", 1.0)
+            # Wind generation (assume 40% of renewable is wind-based)
+            wind_generation = 0.4 * wind_multiplier * weather_effects.get("wind", 1.0)
+            # Combined renewable multiplier
+            effective_renewable_mult = renewable_multiplier * (0.6 * solar_generation + 0.4 * wind_generation)
+            
             renewable_potential = (
                 base_load
                 * (zone["renewable_share"] + renewable_boost * 0.5)
-                * (0.6 + 0.4 * solar_index)
+                * effective_renewable_mult
             )
             renewable_output = max(0.0, renewable_potential + self._rng.uniform(-3.0, 4.0))
             dispatchable = max(consumption - renewable_output + 10.0, 6.0)
@@ -226,7 +246,18 @@ class EnergyGrid(SubsystemThread):
             total_generation += generation
             total_renewables += renewable_output
 
-        line_metrics, transmission_losses = self._balance_power(zone_runtime)
+        # Apply power lines down scenario (disable some transmission lines)
+        active_lines = self._lines
+        if power_lines_down > 0:
+            # Disable the first N lines
+            active_lines = self._lines[:-power_lines_down] if power_lines_down < len(self._lines) else []
+        
+        # Rebuild adjacency if lines changed
+        if power_lines_down > 0 and active_lines != self._lines:
+            old_adjacency = self._adjacency
+            self._adjacency = self._build_adjacency_from_lines(active_lines)
+        
+        line_metrics, transmission_losses = self._balance_power(zone_runtime, active_lines)
         total_losses = transmission_losses
 
         storage_delta = 0.0
@@ -309,23 +340,22 @@ class EnergyGrid(SubsystemThread):
             "mobility_penalty": round(foot_traffic_index * self._local_costs.get("foot_traffic_penalty", 6.0), 2),
         }
 
+        # Simplified metrics - removed noise: losses_mw, blackout_risk, lines_congested, 
+        # avg_price_mwh (kept price_index), transmission_efficiency (kept in KPIs only)
+        # Merged lines_congested into transmission_efficiency concept
+        grid_efficiency = transmission_efficiency * (1.0 - min(sum(1 for line in line_metrics if line["utilization"] >= 0.85) / max(len(line_metrics), 1), 0.2))
+        
         self._latest_metrics = {
             "generation_mw": round(total_generation, 2),
             "consumption_mw": round(total_consumption, 2),
             "surplus_mw": round(total_generation - total_consumption, 2),
             "renewable_ratio": round(renewable_ratio, 3),
             "storage_mwh": round(self._storage_level, 2),
-            "demand_response": self._demand_response_active,
-            "losses_mw": round(total_losses, 2),
             "price_index": round(price_index, 3),
-            "avg_price_mwh": round(avg_price, 2),
-            "blackout_risk": round(blackout_risk, 3),
-            "transmission_efficiency": round(transmission_efficiency, 3),
-            "avg_carbon_intensity": round(avg_carbon, 3),
-            "lines_congested": sum(1 for line in line_metrics if line["utilization"] >= 0.85),
+            "carbon_intensity": round(avg_carbon, 3),
             "zones": self._format_zone_snapshot(zone_runtime),
             "lines": line_metrics,
-            "weather": weather,
+            "weather": weather,  # Includes weather_condition and weather_effects
             "kpis": {
                 "transmission_efficiency": round(transmission_efficiency, 3),
                 "renewable_utilization": round(renewable_ratio, 3),
@@ -361,13 +391,23 @@ class EnergyGrid(SubsystemThread):
     # ------------------------------------------------------------------
     # Internal helpers
     # ------------------------------------------------------------------
-    def _balance_power(self, zone_runtime: Dict[str, dict[str, float]]) -> tuple[list[dict[str, Any]], float]:
+    def _build_adjacency_from_lines(self, lines: List[TransmissionLine]) -> Dict[str, List[str]]:
+        """Rebuild adjacency matrix from a subset of lines."""
+        adjacency: Dict[str, List[str]] = {zone: [] for zone in self._zones}
+        for line in lines:
+            adjacency[line.origin].append(line.destination)
+            adjacency[line.destination].append(line.origin)
+        return adjacency
+
+    def _balance_power(self, zone_runtime: Dict[str, dict[str, float]], lines: List[TransmissionLine] | None = None) -> tuple[list[dict[str, Any]], float]:
+        if lines is None:
+            lines = self._lines
         zone_surplus = {zone_id: state["surplus"] for zone_id, state in zone_runtime.items()}
-        line_flow: Dict[str, float] = {line.identifier: 0.0 for line in self._lines}
-        line_losses: Dict[str, float] = {line.identifier: 0.0 for line in self._lines}
+        line_flow: Dict[str, float] = {line.identifier: 0.0 for line in lines}
+        line_losses: Dict[str, float] = {line.identifier: 0.0 for line in lines}
 
         for _ in range(2):
-            for line in self._lines:
+            for line in lines:
                 origin_surplus = zone_surplus[line.origin]
                 dest_surplus = zone_surplus[line.destination]
                 source_id: str | None = None
@@ -397,8 +437,8 @@ class EnergyGrid(SubsystemThread):
             zone_runtime[zone_id]["surplus"] = surplus
 
         line_metrics: list[dict[str, Any]] = []
-        for line in self._lines:
-            flow = line_flow[line.identifier]
+        for line in lines:
+            flow = line_flow.get(line.identifier, 0.0)
             utilization = min(1.0, abs(flow) / max(line.capacity_mw, 1.0))
             start = self._zones[line.origin]
             end = self._zones[line.destination]
@@ -410,7 +450,7 @@ class EnergyGrid(SubsystemThread):
                     "flow_mw": round(flow, 2),
                     "capacity_mw": line.capacity_mw,
                     "utilization": round(utilization, 3),
-                    "loss_mw": round(line_losses[line.identifier], 2),
+                    "loss_mw": round(line_losses.get(line.identifier, 0.0), 2),
                     "from_lat": start["lat"],
                     "from_lon": start["lon"],
                     "to_lat": end["lat"],

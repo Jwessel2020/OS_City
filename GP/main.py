@@ -12,6 +12,10 @@ from src.utils.config import load_simulation_config
 from src.utils.logging import configure_logging
 
 
+THIS_DIR = Path(__file__).resolve().parent
+DEFAULT_CONFIG_PATH = THIS_DIR / "src/data/scenario_default.json"
+
+
 def parse_args() -> argparse.Namespace:
     """Parse command-line arguments for the simulation runner."""
 
@@ -21,7 +25,7 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--config",
         type=Path,
-        default=Path("src/data/scenario_default.json"),
+        default=DEFAULT_CONFIG_PATH,
         help="Path to the simulation configuration file",
     )
     parser.add_argument(
@@ -51,20 +55,37 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
+def _resolve_config_path(raw_path: Path) -> Path:
+    """Resolve a user-provided config path relative to this file when needed."""
+
+    candidates = [raw_path]
+    if not raw_path.is_absolute():
+        candidates.append((THIS_DIR / raw_path).resolve())
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+    return raw_path
+
+
 def main() -> None:
     args = parse_args()
 
-    config = load_simulation_config(args.config)
-    runtime_log = config.get("logging", {}).get("runtime_log")
-    configure_logging(args.log_level, runtime_log)
-    logger = logging.getLogger(__name__)
+    config_path = _resolve_config_path(args.config)
 
     if args.ticks is not None and args.ticks <= 0:
         args.ticks = None
 
-    if not args.config.exists():
+    if not config_path.exists():
         parser_hint = "Try generating a configuration file in src/data/"
-        raise FileNotFoundError(f"Configuration file not found: {args.config}. {parser_hint}")
+        raise FileNotFoundError(
+            f"Configuration file not found: {args.config}. {parser_hint}"
+        )
+
+    config = load_simulation_config(config_path)
+    runtime_log = config.get("logging", {}).get("runtime_log")
+    configure_logging(args.log_level, runtime_log)
+    logger = logging.getLogger(__name__)
 
     if args.mode == "report" and args.ticks is None:
         args.ticks = int(config.get("report_ticks", 180))

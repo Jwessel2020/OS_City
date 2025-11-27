@@ -83,13 +83,11 @@ class WasteOps(SubsystemThread):
         )
 
     def collect_metrics(self) -> dict[str, Any]:
+        # Simplified metrics - removed: fuel_liters, fleet_energy_mwh, recycling_ratio
         return {
             "pending_requests": len(self._pending_requests),
             "served_this_tick": self._served_this_tick,
             "served_total": self._served_requests_total,
             "avg_route_km": self._avg_route_km,
-            "fuel_liters": self._fuel_liters,
-            "recycling_ratio": round(self._recycling_ratio, 3),
-            "fleet_energy_mwh": self._fleet_energy_mwh,
         }
 

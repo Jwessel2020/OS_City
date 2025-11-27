@@ -25,6 +25,11 @@ class ControlState:
     emergency_override: bool = False
     emergency_staff: int = 8
     paused: bool = False
+    # New scenario parameters
+    road_capacity: float = 1.0  # Multiplier for road capacity (0.6 = 60% capacity)
+    traffic_signals_offline: bool = False  # When True, signals don't work
+    power_lines_down: int = 0  # Number of transmission lines disabled
+    street_lighting_load: float = 0.0  # Additional load for street lighting (MW)
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -37,6 +42,10 @@ class ControlState:
             "emergency_override": self.emergency_override,
             "emergency_staff": self.emergency_staff,
             "paused": self.paused,
+            "road_capacity": self.road_capacity,
+            "traffic_signals_offline": self.traffic_signals_offline,
+            "power_lines_down": self.power_lines_down,
+            "street_lighting_load": self.street_lighting_load,
         }
 
 

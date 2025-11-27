@@ -30,6 +30,7 @@ class TrafficManager(SubsystemThread):
         self._vehicles = 0
         self._ev_demand_mwh = 0.0
         self._signal_efficiency = 1.0
+        self._emissions = 0.0
 
     def on_start(self) -> None:
         logger.info(
@@ -52,24 +53,43 @@ class TrafficManager(SubsystemThread):
         # Energy shortages reduce signal efficiency, emergency roadblocks reduce capacity
         signal_bias = float(self.get_control("traffic_signal_bias", 1.0))
         signal_bias = max(0.5, min(signal_bias, 1.8))
+        
+        # Check if signals are offline (scenario parameter)
+        signals_offline = bool(self.get_control("traffic_signals_offline", False))
+        road_capacity_mult = float(self.get_control("road_capacity", 1.0))
 
         self._signal_efficiency = max(0.6, 1.0 + min(energy_surplus, 0) / 150.0)
-        self._signal_efficiency *= signal_bias
+        if signals_offline:
+            self._signal_efficiency = 0.3  # Very low efficiency when signals offline
+        else:
+            self._signal_efficiency *= signal_bias
         self._signal_efficiency -= min(emergency_units * 0.03, 0.2)
         self._signal_efficiency = max(0.45, min(self._signal_efficiency, 1.5))
 
+        # Get weather effects (from energy subsystem which has WeatherEngine)
+        energy_weather = self.get_metric("energy", "weather", {})
+        if isinstance(energy_weather, dict):
+            weather_effects = energy_weather.get("weather_effects", {})
+        else:
+            weather_effects = {}
+        weather_road_capacity = weather_effects.get("road_capacity", 1.0)
+        traffic_speed_mult = weather_effects.get("traffic_speed", 1.0)
+
         base_capacity = self._junctions * 12
-        effective_capacity = max(base_capacity * self._signal_efficiency, 1)
+        # Apply weather effects to road capacity (combine with scenario road_capacity)
+        effective_capacity = max(base_capacity * self._signal_efficiency * road_capacity_mult * weather_road_capacity, 1)
         congestion_ratio = vehicles / effective_capacity
 
         # Smooth congestion changes
         occupancy_ratio = min(congestion_ratio, 1.5)
         self._history.append(occupancy_ratio)
         self._congestion_index = sum(self._history) / len(self._history)
-
+        
         # Derive operational metrics
         congestion_factor = min(self._congestion_index, 1.4)
-        self._avg_speed = max(8.0, 55.0 * (1.0 - congestion_factor * 0.55))
+        base_speed = max(8.0, 55.0 * (1.0 - congestion_factor * 0.55))
+        # Apply weather speed multiplier
+        self._avg_speed = base_speed * traffic_speed_mult
         self._avg_wait_min = max(0.5, 1.5 + 6.0 * (congestion_factor - 0.5))
         self._avg_wait_min = max(0.5, self._avg_wait_min)
 
@@ -83,22 +103,30 @@ class TrafficManager(SubsystemThread):
         # Estimate EV charging demand influenced by slower traffic (more idle time)
         idle_factor = 1.0 - min(self._avg_speed / 50.0, 1.0)
         self._ev_demand_mwh = round(vehicles * idle_factor * 0.02, 3)
+        
+        # Calculate CO2 emissions (kg) based on non-EV vehicles and idle time
+        # Assume 80% combustion engine, base emission + congestion penalty
+        combustion_ratio = 0.8
+        base_emission_per_vehicle = 0.15  # kg/tick
+        self._emissions = vehicles * combustion_ratio * base_emission_per_vehicle * (1.0 + congestion_factor)
 
         self._vehicles = vehicles
 
         logger.debug(
             (
                 "Traffic tick: vehicles=%d congestion_index=%.2f avg_speed=%.1f "
-                "incidents=%d signal_eff=%.2f"
+                "incidents=%d signal_eff=%.2f emissions=%.1fkg"
             ),
             vehicles,
             self._congestion_index,
             self._avg_speed,
             self._incidents_this_tick,
             self._signal_efficiency,
+            self._emissions,
         )
 
     def collect_metrics(self) -> dict[str, Any]:
+        # Simplified metrics - removed: signal_efficiency, ev_charging_demand_mwh
         return {
             "vehicles": self._vehicles,
             "avg_speed_kmh": round(self._avg_speed, 2),
@@ -106,7 +134,6 @@ class TrafficManager(SubsystemThread):
             "congestion_index": round(self._congestion_index, 3),
             "incidents": self._incidents_this_tick,
             "total_incidents": self._total_incidents,
-            "signal_efficiency": round(self._signal_efficiency, 3),
-            "ev_charging_demand_mwh": self._ev_demand_mwh,
+            "emissions_co2": round(self._emissions, 2),
         }
 
