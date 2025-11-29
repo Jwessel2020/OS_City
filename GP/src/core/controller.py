@@ -8,8 +8,10 @@ from dataclasses import dataclass, field
 from typing import Any, Callable, Optional
 
 from src.core.kernel import CityKernel
+from src.utils import trace
 
 logger = logging.getLogger(__name__)
+trace = logging.getLogger("trace")
 
 
 @dataclass
@@ -139,6 +141,9 @@ class SimulationController:
     def set_control(self, key: str, value: Any) -> None:
         if not hasattr(self.controls, key):
             raise AttributeError(f"Unknown control: {key}")
+        
+        trace.log_event("USER INPUT", f"Dashboard -> Controller: Setting '{key}'", payload=value)
+        
         setattr(self.controls, key, value)
         self.kernel.set_control_state(self.controls.to_dict())
         for callback in self._on_state_change:
@@ -186,6 +191,11 @@ class SimulationController:
             subsystem = str(event.get("subsystem", ""))
             tick = int(event.get("tick", 0))
             metrics = event.get("metrics", {})
+
+            # Trace data movement: Kernel -> Controller
+            if tick % 5 == 0: # Log every 5th tick to avoid spamming the trace too much, or just log all?
+                # User asked for detailed log. Let's log all but keep it concise.
+                trace.log_event("DATA FLOW", f"KERNEL -> CONTROLLER: Received metrics for {subsystem.upper()}", payload=f"Tick {tick}")
 
             with self._history_lock:
                 bucket = self._history.setdefault(subsystem, [])

@@ -10,7 +10,10 @@ if TYPE_CHECKING:
     from src.core.context import CityContext
     from src.core.kernel import CityKernel
 
+from src.utils import trace
+
 logger = logging.getLogger(__name__)
+# trace = logging.getLogger("trace")
 
 
 class SubsystemThread(threading.Thread):
@@ -38,13 +41,19 @@ class SubsystemThread(threading.Thread):
 
     def run(self) -> None:  # noqa: D401
         """threading.Thread API entry point."""
-
+        trace.log_event("THREAD", f"Thread '{self.name}' STARTED (TID: {threading.get_native_id()})")
         try:
             self.on_start()
-            while not self._shutdown.is_set() and self._wait_for_tick():
+            while not self._shutdown.is_set():
+                trace.log_event("THREAD", f"Thread '{self.name}' WAITING for tick signal")
+                if not self._wait_for_tick():
+                    break
+                
+                trace.log_event("THREAD", f"Thread '{self.name}' RUNNING tick logic")
                 self.before_tick()
                 self.execute_tick()
                 self.after_tick()
+                
                 snapshot = self.collect_metrics()
                 if snapshot is not None:
                     self.publish_metrics(snapshot)
@@ -52,6 +61,7 @@ class SubsystemThread(threading.Thread):
             logger.exception("Subsystem %s encountered an unexpected error", self.name)
             raise
         finally:
+            trace.log_event("THREAD", f"Thread '{self.name}' STOPPING")
             self.on_stop()
 
     # ------------------------------------------------------------------
@@ -108,6 +118,12 @@ class SubsystemThread(threading.Thread):
     def publish_metrics(self, metrics: dict[str, Any]) -> None:
         if self._kernel is None:
             return
+        # Trace data movement: Subsystem -> Kernel
+        trace.log_event(
+            "DATA FLOW",
+            f"{self.identifier.upper()} -> KERNEL: Pushing metrics",
+            payload=metrics
+        )
         self._kernel.publish_metrics(self.identifier, metrics)
 
     def get_metric(self, subsystem: str, key: str, default: Any = 0) -> Any:
@@ -115,12 +131,28 @@ class SubsystemThread(threading.Thread):
 
         latest = self.context.get_latest(subsystem)
         if latest is None:
-            return default
-        _, metrics = latest
-        return metrics.get(key, default)
+            val = default
+        else:
+            _, metrics = latest
+            val = metrics.get(key, default)
+        
+        # Trace data movement: Context -> Subsystem
+        trace.log_event(
+            "DATA FLOW",
+            f"CONTEXT -> {self.identifier.upper()}: Read '{subsystem}.{key}'",
+            payload=val
+        )
+        return val
 
     def get_control(self, key: str, default: Any = None) -> Any:
-        return self.context.get_control(key, default)
+        val = self.context.get_control(key, default)
+        # Trace data movement: Control -> Subsystem
+        trace.log_event(
+            "DATA FLOW",
+            f"CONTROL -> {self.identifier.upper()}: Read knob '{key}'",
+            payload=val
+        )
+        return val
 
     @property
     def identifier(self) -> str:

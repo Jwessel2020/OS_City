@@ -105,6 +105,10 @@ def main() -> None:
 
     kernel.bootstrap()
 
+    # Explicitly disable Werkzeug/Flask request logging at root level before app creation
+    # This is the "nuclear option" to ensure students only see application logic.
+    logging.getLogger('werkzeug').disabled = True
+    
     if args.mode == "visual":
         _run_with_dashboard(kernel, args, logger)
     elif args.mode == "report":

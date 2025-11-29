@@ -11,6 +11,8 @@ from pathlib import Path
 from typing import Any, Iterable, Sequence
 
 
+from src.utils import trace
+
 class SimulationDatabase:
     """Small helper around sqlite3 for persisting simulation data."""
 
@@ -138,6 +140,7 @@ class SimulationDatabase:
         """Persist a metrics snapshot for a subsystem."""
 
         payload = json.dumps(metrics, sort_keys=True)
+        trace.log_event("LOCK", "DATABASE: Acquiring lock for WRITE (Metrics)")
         with self._lock:
             self._conn.execute(
                 """
@@ -146,6 +149,7 @@ class SimulationDatabase:
                 """,
                 (run_id, tick, subsystem, payload),
             )
+        trace.log_event("LOCK", "DATABASE: Released lock (Metrics)")
         self._log_event(
             "record_metrics",
             {"run_id": run_id, "tick": tick, "subsystem": subsystem, "payload": metrics},
@@ -155,6 +159,7 @@ class SimulationDatabase:
         """Persist a control-state update coming from the UI or CLI."""
 
         payload = json.dumps(controls, sort_keys=True)
+        trace.log_event("LOCK", "DATABASE: Acquiring lock for WRITE (Control)")
         with self._lock:
             self._conn.execute(
                 """
@@ -163,7 +168,19 @@ class SimulationDatabase:
                 """,
                 (run_id, payload),
             )
+        trace.log_event("LOCK", "DATABASE: Released lock (Control)")
         self._log_event("control_event", {"run_id": run_id, "payload": controls})
+
+    def get_metrics_count(self, run_id: int) -> int:
+        """Demonstrate READING from the database during runtime."""
+        trace.log_event("LOCK", "DATABASE: Acquiring lock for READ (Count)")
+        with self._lock:
+            cursor = self._conn.execute(
+                "SELECT COUNT(*) FROM metrics WHERE run_id = ?", (run_id,)
+            )
+            count = cursor.fetchone()[0]
+        trace.log_event("LOCK", "DATABASE: Released lock (Count)")
+        return count
 
     # ------------------------------------------------------------------
     # Introspection helpers
@@ -239,7 +256,8 @@ class SimulationDatabase:
     # Logging helpers
     # ------------------------------------------------------------------
     def _trace_sql(self, statement: str) -> None:
-        self._log_event("sql", {"statement": statement})
+        # self._log_event("sql", {"statement": statement})
+        trace.log_event("DATABASE", "Executing SQL", payload=statement.strip())
 
     def _log_event(self, event: str, payload: dict[str, Any] | None) -> None:
         if self._log_path is None:

@@ -6,6 +6,8 @@ import threading
 from typing import Any, Dict, Optional, Tuple
 
 
+from src.utils import trace
+
 class CityContext:
     """Stores the latest snapshot for each subsystem with synchronisation."""
 
@@ -17,14 +19,18 @@ class CityContext:
     def update(self, subsystem: str, tick: int, metrics: dict[str, Any]) -> None:
         """Update the stored metrics for a subsystem."""
 
+        # trace.log_event("LOCK", f"CONTEXT: Acquiring lock for WRITE ({subsystem})")
         with self._lock:
             self._state[subsystem] = (tick, dict(metrics))
+        # trace.log_event("LOCK", f"CONTEXT: Released lock ({subsystem})")
 
     def update_controls(self, controls: dict[str, Any]) -> None:
         """Update control parameters shared with subsystems."""
 
+        trace.log_event("LOCK", "CONTEXT: Acquiring lock for WRITE (Controls)")
         with self._lock:
             self._controls.update(controls)
+        trace.log_event("LOCK", "CONTEXT: Released lock (Controls)")
 
     def get_control(self, key: str, default: Any = None) -> Any:
         with self._lock:

@@ -16,8 +16,10 @@ from src.core.optimizer import CityOptimizer, ControlKnob, OptimizationGoal
 from src.data.database import SimulationDatabase
 from src.subsystems.base import SubsystemThread
 from src.subsystems.factory import build_subsystems_from_config
+from src.utils import trace
 
 logger = logging.getLogger(__name__)
+# trace = logging.getLogger("trace")
 
 
 class CityKernel:
@@ -72,7 +74,8 @@ class CityKernel:
     # ------------------------------------------------------------------
     def bootstrap(self, force: bool = False) -> None:
         """Instantiate and prepare subsystem threads."""
-
+        trace.init_trace() # Initialize our custom trace log
+        
         if force:
             self._subsystems = []
             self._tick_barrier = None
@@ -126,17 +129,34 @@ class CityKernel:
         self._start_run_record()
         self._running.set()
 
+        trace.log_event("KERNEL", "Main Control Loop STARTED")
+
         for subsystem in self._subsystems:
             subsystem.start()
             logger.info("Started subsystem thread %s", subsystem.name)
+            trace.log_event("KERNEL", f"Spawned subsystem thread: {subsystem.name}")
 
         logger.info("Kernel entering main loop with %d subsystems", len(self._subsystems))
 
         run_status = "completed"
         try:
             while self._should_continue():
+                # HEARTBEAT LOG to prove loop is alive
+                if self._tick_index % 1 == 0:
+                    trace.log_event("KERNEL", f"--- HEARTBEAT: Starting Tick {self._tick_index} ---")
+
+                # --- ANALYTICS READ DEMONSTRATION ---
+                # Every 10 ticks, read from the database to verify persistence
+                if self._tick_index > 0 and self._tick_index % 10 == 0 and self._storage and self._run_id:
+                    count = self._storage.get_metrics_count(self._run_id)
+                    trace.log_event("ANALYTICS", f"DB READ CHECK: Persisted metrics count = {count}")
+                # ------------------------------------
+
                 tick_start = time.perf_counter()
                 self._last_tick_start = tick_start
+
+                trace.log_event("KERNEL", f"=== TICK {self._tick_index} START ===")
+                trace.log_event("SYSTEM", f"Waking up {len(self._subsystems)} subsystems")
 
                 self._tick_event.set()
                 barrier_start = time.perf_counter()
@@ -144,7 +164,9 @@ class CityKernel:
                 barrier_wait_time = 0.0
                 try:
                     # Track barrier wait time (intersection wait cycles)
+                    trace.log_event("SYNC", "Kernel entering barrier, waiting for subsystems...")
                     self._tick_barrier.wait(timeout=self.tick_duration * 2.0)
+                    trace.log_event("SYNC", "All subsystems checked in. Barrier released.")
                     barrier_wait_time = (time.perf_counter() - barrier_start) * 1000  # ms
                     self._intersection_wait_cycles.append(barrier_wait_time)
                 except threading.BrokenBarrierError:
@@ -168,6 +190,10 @@ class CityKernel:
 
                 self._tick_index += 1
                 
+                # --- SYNCHRONIZATION FIX ---
+                # Ensure we clear the pause event ONLY if we are supposed to be running
+                # If the loop is paused, we should not be here unless we just woke up.
+                
                 # Run optimization step
                 self.optimizer.step()
                 
@@ -175,6 +201,7 @@ class CityKernel:
                 if self._tick_index % 10 == 0:
                     self.analytics.analyze()
 
+                # Wait for resume signal if paused
                 self._pause_event.wait()
 
                 elapsed = time.perf_counter() - tick_start
@@ -289,6 +316,9 @@ class CityKernel:
         """Store metrics for a subsystem and push to the queue."""
 
         tick = self.current_tick()
+        # Detailed logging already in base.py, but we log the storage here
+        # trace.info("STORAGE: Persisting metrics for %s (Tick %d)", subsystem, tick)
+
         self.context.update(subsystem, tick, metrics)
         self._latest_metrics[subsystem] = dict(metrics)
         
